@@ -1,10 +1,12 @@
 import sqlalchemy as sa
-from flask import render_template
+from flask import flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app import db
+from app.decorators import role_required
 from app.models import Project
 from app.projects import bp
+from app.projects.forms import ProjectForm
 
 
 @bp.route("/")
@@ -16,3 +18,23 @@ def index():
         query = query.where(Project.members.contains(current_user))
     projects = db.session.scalars(query).all()
     return render_template("projects/index.html", projects=projects)
+
+
+@bp.route("/project/new", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def create():
+    form = ProjectForm()
+    if form.validate_on_submit():
+        project = Project(
+            name=form.name.data,
+            # Пустое описание храним как NULL, а не как пустую строку
+            description=form.description.data or None,
+            creator=current_user,
+        )
+        db.session.add(project)
+        db.session.commit()
+        flash(f"Проект «{project.name}» создан.", "success")
+        return redirect(url_for("projects.index"))
+
+    return render_template("projects/create.html", form=form)

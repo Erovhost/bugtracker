@@ -115,7 +115,8 @@ form {
 
 .form-field input[type="text"],
 .form-field input[type="password"],
-.form-field input[type="email"] {
+.form-field input[type="email"],
+.form-field textarea {
     width: 100%;
     box-sizing: border-box;
     padding: 8px;
@@ -151,6 +152,17 @@ form {
 
 .button:hover {
     background: #154a8c;
+}
+
+/* Ссылка, оформленная как кнопка */
+a.button {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.form-field textarea {
+    min-height: 100px;
+    font-family: inherit;
 }
 
 /* Таблицы. Обёртка даёт горизонтальную прокрутку на узком экране */

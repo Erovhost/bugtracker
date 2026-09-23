@@ -5,6 +5,10 @@
 {% block content %}
 <h1>Проекты</h1>
 
+{% if current_user.has_role("admin") %}
+<p><a class="button" href="{{ url_for('projects.create') }}">Создать проект</a></p>
+{% endif %}
+
 {% if projects %}
 <div class="table-wrap">
     <table class="table">
