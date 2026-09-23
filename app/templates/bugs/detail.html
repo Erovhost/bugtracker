@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}#{{ bug.id }} {{ bug.title }}{% endblock %}
+
+{% block content %}
+<p><a href="{{ url_for('projects.detail', project_id=bug.project.id) }}">← {{ bug.project.name }}</a></p>
+
+<h1>#{{ bug.id }} {{ bug.title }}</h1>
+
+<p>
+    <span class="status status-{{ bug.status }}">{{ STATUS_LABELS[bug.status] }}</span>
+</p>
+
+<div class="table-wrap">
+    <table class="table props">
+        <tr>
+            <th>Серьёзность</th>
+            <td>{{ SEVERITY_LABELS[bug.severity] }}</td>
+        </tr>
+        <tr>
+            <th>Приоритет</th>
+            <td>{{ PRIORITY_LABELS[bug.priority] }}</td>
+        </tr>
+        <tr>
+            <th>Автор</th>
+            <td>{{ bug.reporter.username }}, {{ bug.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+        </tr>
+        <tr>
+            <th>Исполнитель</th>
+            <td>{{ bug.assignee.username if bug.assignee else "не назначен" }}</td>
+        </tr>
+        <tr>
+            <th>Последнее изменение</th>
+            <td>{{ bug.updater.username }}, {{ bug.updated_at.strftime("%d.%m.%Y %H:%M") }}</td>
+        </tr>
+        <tr>
+            <th>Окружение</th>
+            <td>{{ bug.environment or "не указано" }}</td>
+        </tr>
+    </table>
+</div>
+
+<h2>Шаги воспроизведения</h2>
+<p class="description">{{ bug.steps or "не указано" }}</p>
+
+<h2>Ожидаемый результат</h2>
+<p class="description">{{ bug.expected or "не указано" }}</p>
+
+<h2>Фактический результат</h2>
+<p class="description">{{ bug.actual or "не указано" }}</p>
+{% endblock %}

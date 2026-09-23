@@ -2,7 +2,7 @@ from flask import abort
 from flask_login import current_user
 
 from app import db
-from app.models import Project
+from app.models import Bug, Project
 
 
 def can_view_project(user, project):
@@ -19,3 +19,14 @@ def get_project_or_403(project_id):
     if not can_view_project(current_user, project):
         abort(403)
     return project
+
+
+def get_bug_or_403(bug_id):
+    """Загрузить баг для текущего пользователя.
+
+    Доступ к багу — как к его проекту. Нет бага — 404, нет доступа — 403.
+    """
+    bug = db.get_or_404(Bug, bug_id)
+    if not can_view_project(current_user, bug.project):
+        abort(403)
+    return bug

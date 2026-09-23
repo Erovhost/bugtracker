@@ -2,7 +2,7 @@ from flask import flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.access import get_project_or_403
+from app.access import get_bug_or_403, get_project_or_403
 from app.bugs import bp
 from app.bugs.forms import BugForm
 from app.decorators import role_required
@@ -50,6 +50,13 @@ def create(project_id):
         db.session.add(bug)
         db.session.commit()
         flash(f"Баг #{bug.id} создан.", "success")
-        return redirect(url_for("projects.detail", project_id=project.id))
+        return redirect(url_for("bugs.detail", bug_id=bug.id))
 
     return render_template("bugs/create.html", form=form, project=project)
+
+
+@bp.route("/<int:bug_id>")
+@login_required
+def detail(bug_id):
+    bug = get_bug_or_403(bug_id)
+    return render_template("bugs/detail.html", bug=bug)
