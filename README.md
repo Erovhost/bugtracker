@@ -1,11 +1,11 @@
 # Баг-трекер
 
+[![Maintainability](https://qlty.sh/gh/Erovhost/projects/bugtracker/maintainability.svg)](https://qlty.sh/gh/Erovhost/projects/bugtracker)
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB)
 ![Flask](https://img.shields.io/badge/Flask-3.1-000000)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1)
 ![Тесты](https://img.shields.io/badge/pytest-198_тестов-0A9EDC)
 ![Линтер](https://img.shields.io/badge/code_style-ruff-D7FF64)
-<!-- Бейдж Qlty — после подключения Qlty (этап 13) -->
 
 Веб-приложение для учёта багов в проектах: тестировщики заводят баги,
 разработчики берут их в работу и исправляют, тестировщики проверяют и закрывают.
