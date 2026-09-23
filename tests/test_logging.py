@@ -6,9 +6,10 @@ caplog — фикстура pytest, которая перехватывает з
 import logging
 from logging.handlers import RotatingFileHandler
 
+import click
 import pytest
 
-from app.logs import setup_file_logging
+from app.logs import is_server_start, setup_file_logging
 from tests.helpers import PASSWORD, login, post
 from tests.test_errors import make_app_with_broken_route
 
@@ -124,3 +125,49 @@ def test_file_logging(app, tmp_path):
 def test_no_log_file_in_tests(app):
     handlers = [h for h in app.logger.handlers if isinstance(h, RotatingFileHandler)]
     assert handlers == []
+
+
+# --- Строка «Баг-трекер запущен» — только при запуске веб-сервера ------------
+
+class FakeApp:
+    """Вместо приложения — только флаг режима отладки."""
+
+    def __init__(self, debug):
+        self.debug = debug
+
+
+def command_context(name, reload=None):
+    context = click.Context(click.Command(name), info_name=name)
+    context.params = {"reload": reload}
+    return context
+
+
+def test_server_start_without_click():
+    # Нет команды click — приложение запустил веб-сервер (например, gunicorn)
+    assert is_server_start(FakeApp(debug=False)) is True
+
+
+@pytest.mark.parametrize("command", ["routes", "shell", "seed-demo", "create-admin"])
+def test_other_commands_are_not_server_start(command):
+    with command_context(command):
+        assert is_server_start(FakeApp(debug=True)) is False
+
+
+@pytest.mark.parametrize(
+    "reload, debug, in_server_process, expected",
+    [
+        (False, True, False, True),   # flask run --no-reload
+        (None, False, False, True),   # flask run без отладки — перезагрузчика нет
+        (None, True, False, False),   # отладка: это процесс-наблюдатель
+        (None, True, True, True),     # отладка: это процесс-сервер
+        (True, False, True, True),    # flask run --reload, процесс-сервер
+    ],
+)
+def test_flask_run(monkeypatch, reload, debug, in_server_process, expected):
+    # Процесс-сервер Werkzeug помечает переменной окружения WERKZEUG_RUN_MAIN
+    if in_server_process:
+        monkeypatch.setenv("WERKZEUG_RUN_MAIN", "true")
+    else:
+        monkeypatch.delenv("WERKZEUG_RUN_MAIN", raising=False)
+    with command_context("run", reload=reload):
+        assert is_server_start(FakeApp(debug=debug)) is expected

@@ -51,9 +51,10 @@ def create_app(config_class=Config):
 
     # Журнал в файл logs/bugtracker.log (в тестах не пишем)
     if not app.testing:
-        from app.logs import setup_file_logging
+        from app.logs import is_server_start, setup_file_logging
         setup_file_logging(app, app.config["LOG_DIR"])
-        app.logger.info("Баг-трекер запущен")
+        if is_server_start(app):
+            app.logger.info("Баг-трекер запущен")
 
     return app
 
