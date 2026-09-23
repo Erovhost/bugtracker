@@ -13,6 +13,7 @@
             {% if current_user.is_authenticated %}
             <a href="{{ url_for('projects.index') }}">Проекты</a>
             <a href="{{ url_for('bugs.index') }}">Баги</a>
+            <a href="{{ url_for('bugs.stats') }}">Статистика</a>
             {% if current_user.has_role("admin") %}
             <a href="{{ url_for('admin.index') }}">Пользователи</a>
             {% endif %}

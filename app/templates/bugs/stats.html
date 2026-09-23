@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика{% endblock %}
+
+{% block content %}
+<h1>Статистика</h1>
+{% if not current_user.has_role("admin") %}
+<p class="muted">Только по проектам, в которых вы участвуете.</p>
+{% endif %}
+
+<h2>Баги по проектам</h2>
+{% if projects %}
+<div class="table-wrap">
+    <table class="table stats">
+        <thead>
+            <tr>
+                <th>Проект</th>
+                <th>Всего</th>
+                {% for code, label in STATUS_LABELS.items() %}
+                <th><span class="status status-{{ code }}">{{ label }}</span></th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in projects %}
+            <tr>
+                <td><a href="{{ url_for('projects.detail', project_id=row.project_id) }}">{{ row.project_name }}</a></td>
+                <td><strong>{{ row.total }}</strong></td>
+                {# Колонки представления называются status_<код статуса> #}
+                {% for code in STATUS_LABELS %}
+                <td>{{ row["status_" ~ code] }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p>Проектов пока нет.</p>
+{% endif %}
+
+<h2>Открытые баги по исполнителям</h2>
+<p class="muted">Открытые — «Новый», «В работе» и «Исправлен».</p>
+{% if assignees %}
+<div class="table-wrap">
+    <table class="table stats">
+        <thead>
+            <tr>
+                <th>Проект</th>
+                <th>Исполнитель</th>
+                <th>Открытых</th>
+                <th><span class="status status-new">{{ STATUS_LABELS["new"] }}</span></th>
+                <th><span class="status status-in_progress">{{ STATUS_LABELS["in_progress"] }}</span></th>
+                <th><span class="status status-fixed">{{ STATUS_LABELS["fixed"] }}</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in assignees %}
+            <tr>
+                <td>{{ project_names[row.project_id] }}</td>
+                <td>
+                    {% if row.assignee_id is none %}
+                    <a href="{{ url_for('bugs.index', assignee='none') }}">не назначен</a>
+                    {% else %}
+                    <a href="{{ url_for('bugs.index', assignee=row.assignee_id) }}">{{ row.assignee_username }}</a>
+                    {% if not row.assignee_is_active %}<span class="blocked">заблокирован</span>{% endif %}
+                    {% endif %}
+                </td>
+                <td><strong>{{ row.open_total }}</strong></td>
+                <td>{{ row.status_new }}</td>
+                <td>{{ row.status_in_progress }}</td>
+                <td>{{ row.status_fixed }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p>Открытых багов нет.</p>
+{% endif %}
+{% endblock %}

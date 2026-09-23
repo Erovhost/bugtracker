@@ -22,6 +22,7 @@ from app.models import (
     Project,
     User,
 )
+from app.stats import open_bugs_by_assignee, project_stats
 from app.workflow import apply_transition, available_transitions, check_transition
 
 
@@ -281,3 +282,20 @@ def edit(bug_id):
         return redirect(url_for("bugs.detail", bug_id=bug.id))
 
     return render_template("bugs/edit.html", form=form, bug=bug)
+
+
+@bp.route("/stats")
+@login_required
+def stats():
+    # Данные — из представлений PostgreSQL, только по видимым проектам
+    projects = project_stats(current_user)
+    # Название проекта для второй таблицы: id -> name
+    project_names = {}
+    for row in projects:
+        project_names[row["project_id"]] = row["project_name"]
+    return render_template(
+        "bugs/stats.html",
+        projects=projects,
+        assignees=open_bugs_by_assignee(current_user),
+        project_names=project_names,
+    )
