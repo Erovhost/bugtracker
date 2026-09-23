@@ -107,6 +107,39 @@ CREATE TRIGGER trg_bugs_status_history
     WHEN (OLD.status IS DISTINCT FROM NEW.status)
     EXECUTE FUNCTION log_bug_status_change();
 
+-- Представления (VIEW) для страницы статистики.
+-- v_bug_stats: число багов по проектам и статусам (проекты без багов — с нулями).
+CREATE VIEW v_bug_stats AS
+SELECT
+    p.id   AS project_id,
+    p.name AS project_name,
+    count(b.id) AS total,
+    count(*) FILTER (WHERE b.status = 'new')         AS status_new,
+    count(*) FILTER (WHERE b.status = 'in_progress') AS status_in_progress,
+    count(*) FILTER (WHERE b.status = 'fixed')       AS status_fixed,
+    count(*) FILTER (WHERE b.status = 'rejected')    AS status_rejected,
+    count(*) FILTER (WHERE b.status = 'closed')      AS status_closed
+FROM projects p
+LEFT JOIN bugs b ON b.project_id = p.id
+GROUP BY p.id, p.name;
+
+-- v_open_bugs_by_assignee: открытые баги (new, in_progress, fixed) по исполнителям
+-- в каждом проекте; assignee_id = NULL — баги без исполнителя.
+CREATE VIEW v_open_bugs_by_assignee AS
+SELECT
+    b.project_id,
+    u.id        AS assignee_id,
+    u.username  AS assignee_username,
+    u.is_active AS assignee_is_active,
+    count(*) AS open_total,
+    count(*) FILTER (WHERE b.status = 'new')         AS status_new,
+    count(*) FILTER (WHERE b.status = 'in_progress') AS status_in_progress,
+    count(*) FILTER (WHERE b.status = 'fixed')       AS status_fixed
+FROM bugs b
+LEFT JOIN users u ON u.id = b.assignee_id
+WHERE b.status IN ('new', 'in_progress', 'fixed')
+GROUP BY b.project_id, u.id, u.username, u.is_active;
+
 -- Справочные данные
 INSERT INTO roles (name) VALUES ('admin'), ('tester'), ('developer');
 
