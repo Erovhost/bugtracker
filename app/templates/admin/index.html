@@ -40,12 +40,22 @@
                         {{ approve_form.role(id="role-" ~ user.id) }}
                         {{ approve_form.submit(class="button button-small", id="approve-" ~ user.id) }}
                     </form>
-                    {% elif user.status == "active" %}
+                    {% else %}
+                    {# Смена роли — для активных и заблокированных #}
+                    {% set role_form = role_forms[user.id] %}
+                    <form class="inline-form" method="post" action="{{ url_for('admin.change_role', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {{ role_form.role(id="newrole-" ~ user.id) }}
+                        {{ role_form.submit(class="button button-small", id="setrole-" ~ user.id) }}
+                    </form>
+                    {% endif %}
+
+                    {% if user.id != current_user.id and user.status == "active" %}
                     <form class="inline-form" method="post" action="{{ url_for('admin.block', user_id=user.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="button button-small button-danger">Заблокировать</button>
                     </form>
-                    {% else %}
+                    {% elif user.status == "blocked" %}
                     <form class="inline-form" method="post" action="{{ url_for('admin.unblock', user_id=user.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="button button-small">Разблокировать</button>

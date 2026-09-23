@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.admin import bp
-from app.admin.forms import ApproveForm
+from app.admin.forms import ApproveForm, RoleForm
 from app.assignments import unassign_user_bugs
 from app.decorators import role_required
 from app.models import USER_STATUS_LABELS, Role, User
@@ -25,11 +25,17 @@ def index():
             User.approved_at.is_not(None), User.is_active, User.username
         )
     ).all()
+    # У каждого пользователя своя форма смены роли с его текущей ролью.
+    # formdata=None — не брать данные из запроса, только из data.
+    role_forms = {}
+    for user in users:
+        role_forms[user.id] = RoleForm(formdata=None, data={"role": user.role.name})
     return render_template(
         "admin/index.html",
         users=users,
         USER_STATUS_LABELS=USER_STATUS_LABELS,
         approve_form=ApproveForm(),
+        role_forms=role_forms,
     )
 
 
@@ -92,4 +98,41 @@ def unblock(user_id):
     user.is_active = True
     db.session.commit()
     flash(f"{user.username} разблокирован.", "success")
+    return back_to_list()
+
+
+@bp.route("/users/<int:user_id>/role", methods=["POST"])
+@login_required
+@role_required("admin")
+def change_role(user_id):
+    user = db.get_or_404(User, user_id)
+    if user.id == current_user.id:
+        flash("Нельзя сменить роль самому себе.", "error")
+        return back_to_list()
+    if user.status == "pending":
+        flash(
+            f"{user.username} ещё не одобрен — роль выбирается при одобрении.",
+            "error",
+        )
+        return back_to_list()
+    form = RoleForm()
+    if not form.validate_on_submit():
+        flash("Выберите роль из списка.", "error")
+        return back_to_list()
+    if form.role.data == user.role.name:
+        flash(f"Роль {user.username} не изменилась.", "info")
+        return back_to_list()
+
+    old_role = user.role.name
+    user.role = db.session.scalar(sa.select(Role).where(Role.name == form.role.data))
+    message = f"{user.username}: роль {old_role} → {user.role.name}."
+    # Исполнителем может быть только developer: при уходе с этой роли
+    # снимаем назначения по тому же правилу, что при блокировке
+    if old_role == "developer":
+        bugs = unassign_user_bugs(user, current_user)
+        if bugs:
+            numbers = ", ".join(f"#{bug.id}" for bug in bugs)
+            message += f" Снято назначение с багов: {numbers}."
+    db.session.commit()
+    flash(message, "success")
     return back_to_list()

@@ -13,3 +13,8 @@ class ApproveForm(FlaskForm):
     # SelectField сам проверяет, что пришла одна из ролей списка
     role = SelectField("Роль", choices=ROLE_CHOICES)
     submit = SubmitField("Одобрить")
+
+
+class RoleForm(FlaskForm):
+    role = SelectField("Роль", choices=ROLE_CHOICES)
+    submit = SubmitField("Сменить роль")
