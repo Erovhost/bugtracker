@@ -61,6 +61,13 @@ class Role(db.Model):
 # Его свойство is_active перекрывает наша колонка is_active.
 class User(UserMixin, db.Model):
     __tablename__ = "users"
+    # Нельзя быть активным, не будучи одобренным: «одобрен ИЛИ неактивен»
+    __table_args__ = (
+        sa.CheckConstraint(
+            "approved_at IS NOT NULL OR NOT is_active",
+            name="ck_users_active_approved",
+        ),
+    )
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), unique=True)

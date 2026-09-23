@@ -19,7 +19,10 @@ CREATE TABLE users (
     role_id       INTEGER      NOT NULL REFERENCES roles (id),
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
     approved_at   TIMESTAMP,              -- NULL: заявка ещё не одобрена
-    created_at    TIMESTAMP    NOT NULL DEFAULT now()
+    created_at    TIMESTAMP    NOT NULL DEFAULT now(),
+    -- Нельзя быть активным, не будучи одобренным: «одобрен ИЛИ неактивен»
+    CONSTRAINT ck_users_active_approved
+        CHECK (approved_at IS NOT NULL OR NOT is_active)
 );
 
 -- Проекты
