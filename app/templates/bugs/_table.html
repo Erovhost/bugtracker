@@ -1,0 +1,37 @@
+{# Макрос: таблица багов. show_project — показывать ли колонку «Проект» #}
+{% macro bug_table(bugs, show_project=False) %}
+{% if bugs %}
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Заголовок</th>
+                {% if show_project %}<th>Проект</th>{% endif %}
+                <th>Статус</th>
+                <th>Серьёзность</th>
+                <th>Приоритет</th>
+                <th>Исполнитель</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bug in bugs %}
+            <tr>
+                <td>{{ bug.id }}</td>
+                <td><a href="{{ url_for('bugs.detail', bug_id=bug.id) }}">{{ bug.title }}</a></td>
+                {% if show_project %}
+                <td><a href="{{ url_for('projects.detail', project_id=bug.project.id) }}">{{ bug.project.name }}</a></td>
+                {% endif %}
+                <td><span class="status status-{{ bug.status }}">{{ STATUS_LABELS[bug.status] }}</span></td>
+                <td>{{ SEVERITY_LABELS[bug.severity] }}</td>
+                <td>{{ PRIORITY_LABELS[bug.priority] }}</td>
+                <td>{{ bug.assignee.username if bug.assignee else "—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p>Багов пока нет.</p>
+{% endif %}
+{% endmacro %}

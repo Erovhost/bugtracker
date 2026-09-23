@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "bugs/_table.html" import bug_table with context %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -19,9 +20,11 @@
 {% endif %}
 
 {# Заводить баги может тестировщик — участник проекта (на эту страницу чужие не попадают) #}
+<h2>Баги</h2>
 {% if current_user.has_role("tester") %}
 <p><a class="button" href="{{ url_for('bugs.create', project_id=project.id) }}">Сообщить о баге</a></p>
 {% endif %}
+{{ bug_table(bugs) }}
 
 <h2>Участники</h2>
 {% if project.members %}

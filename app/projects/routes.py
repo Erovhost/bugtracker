@@ -5,7 +5,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.access import get_project_or_403
 from app.decorators import role_required
-from app.models import Project, Role, User
+from app.models import Bug, Project, Role, User
 from app.projects import bp
 from app.projects.forms import AddMemberForm, ProjectForm
 
@@ -60,11 +60,16 @@ def create():
 @login_required
 def detail(project_id):
     project = get_project_or_403(project_id)
+    bugs = db.session.scalars(
+        sa.select(Bug).where(Bug.project_id == project.id).order_by(Bug.id.desc())
+    ).all()
     add_form = None
     if current_user.has_role("admin"):
         add_form = AddMemberForm()
         add_form.user_id.choices = member_choices(project)
-    return render_template("projects/detail.html", project=project, add_form=add_form)
+    return render_template(
+        "projects/detail.html", project=project, bugs=bugs, add_form=add_form
+    )
 
 
 @bp.route("/project/<int:project_id>/edit", methods=["GET", "POST"])

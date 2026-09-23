@@ -1,3 +1,4 @@
+import sqlalchemy as sa
 from flask import flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
@@ -6,7 +7,7 @@ from app.access import get_bug_or_403, get_project_or_403
 from app.bugs import bp
 from app.bugs.forms import BugForm
 from app.decorators import role_required
-from app.models import PRIORITY_LABELS, SEVERITY_LABELS, STATUS_LABELS, Bug
+from app.models import PRIORITY_LABELS, SEVERITY_LABELS, STATUS_LABELS, Bug, Project
 
 
 # Словари подписей доступны во всех шаблонах приложения
@@ -22,7 +23,12 @@ def inject_labels():
 @bp.route("/")
 @login_required
 def index():
-    return render_template("bugs/index.html")
+    # Админ видит все баги, остальные — баги своих проектов. Новые сверху.
+    query = sa.select(Bug).order_by(Bug.id.desc())
+    if not current_user.has_role("admin"):
+        query = query.join(Bug.project).where(Project.members.contains(current_user))
+    bugs = db.session.scalars(query).all()
+    return render_template("bugs/index.html", bugs=bugs)
 
 
 @bp.route("/project/<int:project_id>/new", methods=["GET", "POST"])

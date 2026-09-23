@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% from "bugs/_table.html" import bug_table with context %}
 
 {% block title %}Баги{% endblock %}
 
 {% block content %}
 <h1>Баги</h1>
-<p>Страница в разработке.</p>
+{{ bug_table(bugs, show_project=True) }}
 {% endblock %}
