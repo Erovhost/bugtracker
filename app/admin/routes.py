@@ -1,11 +1,17 @@
 import sqlalchemy as sa
-from flask import render_template
-from flask_login import login_required
+from flask import flash, redirect, render_template, url_for
+from flask_login import current_user, login_required
 
 from app import db
 from app.admin import bp
+from app.admin.forms import ApproveForm
+from app.assignments import unassign_user_bugs
 from app.decorators import role_required
-from app.models import USER_STATUS_LABELS, User
+from app.models import USER_STATUS_LABELS, Role, User
+
+
+def back_to_list():
+    return redirect(url_for("admin.index"))
 
 
 @bp.route("/")
@@ -20,5 +26,70 @@ def index():
         )
     ).all()
     return render_template(
-        "admin/index.html", users=users, USER_STATUS_LABELS=USER_STATUS_LABELS
+        "admin/index.html",
+        users=users,
+        USER_STATUS_LABELS=USER_STATUS_LABELS,
+        approve_form=ApproveForm(),
     )
+
+
+@bp.route("/users/<int:user_id>/approve", methods=["POST"])
+@login_required
+@role_required("admin")
+def approve(user_id):
+    user = db.get_or_404(User, user_id)
+    if user.status != "pending":
+        flash(f"{user.username} не ожидает одобрения.", "error")
+        return back_to_list()
+    form = ApproveForm()
+    if not form.validate_on_submit():
+        flash("Выберите роль из списка.", "error")
+        return back_to_list()
+
+    user.role = db.session.scalar(sa.select(Role).where(Role.name == form.role.data))
+    # Время одобрения ставит сама база
+    user.approved_at = sa.func.now()
+    user.is_active = True
+    db.session.commit()
+    flash(f"{user.username} одобрен с ролью {user.role.name}.", "success")
+    return back_to_list()
+
+
+@bp.route("/users/<int:user_id>/block", methods=["POST"])
+@login_required
+@role_required("admin")
+def block(user_id):
+    # CSRF-токен проверяет CSRFProtect
+    user = db.get_or_404(User, user_id)
+    if user.id == current_user.id:
+        flash("Нельзя заблокировать самого себя.", "error")
+        return back_to_list()
+    if user.status != "active":
+        flash(f"{user.username} сейчас не активен.", "error")
+        return back_to_list()
+
+    user.is_active = False
+    # Заблокированный не может быть исполнителем: снимаем с открытых багов
+    # во всех проектах (closed и rejected не трогаем — правило из ТЗ)
+    bugs = unassign_user_bugs(user, current_user)
+    db.session.commit()
+    message = f"{user.username} заблокирован."
+    if bugs:
+        numbers = ", ".join(f"#{bug.id}" for bug in bugs)
+        message += f" Снято назначение с багов: {numbers}."
+    flash(message, "info")
+    return back_to_list()
+
+
+@bp.route("/users/<int:user_id>/unblock", methods=["POST"])
+@login_required
+@role_required("admin")
+def unblock(user_id):
+    user = db.get_or_404(User, user_id)
+    if user.status != "blocked":
+        flash(f"{user.username} не заблокирован.", "error")
+        return back_to_list()
+    user.is_active = True
+    db.session.commit()
+    flash(f"{user.username} разблокирован.", "success")
+    return back_to_list()

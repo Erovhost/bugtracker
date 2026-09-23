@@ -14,6 +14,7 @@
                 <th>Роль</th>
                 <th>Статус</th>
                 <th>Зарегистрирован</th>
+                <th>Действия</th>
             </tr>
         </thead>
         <tbody>
@@ -29,6 +30,28 @@
                     <span class="user-status user-status-{{ user.status }}">{{ USER_STATUS_LABELS[user.status] }}</span>
                 </td>
                 <td>{{ user.created_at.strftime("%d.%m.%Y") }}</td>
+                <td>
+                    {% if user.id == current_user.id %}
+                    —
+                    {% elif user.status == "pending" %}
+                    <form class="inline-form" method="post" action="{{ url_for('admin.approve', user_id=user.id) }}">
+                        {# Форма повторяется в каждой строке — id делаем уникальными #}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {{ approve_form.role(id="role-" ~ user.id) }}
+                        {{ approve_form.submit(class="button button-small", id="approve-" ~ user.id) }}
+                    </form>
+                    {% elif user.status == "active" %}
+                    <form class="inline-form" method="post" action="{{ url_for('admin.block', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="button button-small button-danger">Заблокировать</button>
+                    </form>
+                    {% else %}
+                    <form class="inline-form" method="post" action="{{ url_for('admin.unblock', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="button button-small">Разблокировать</button>
+                    </form>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
