@@ -43,6 +43,28 @@
     </table>
 </div>
 
+{# Управление исполнителем #}
+{% if assign_form %}
+<form class="assign-form" method="post" action="{{ url_for('bugs.assign', bug_id=bug.id) }}">
+    {{ assign_form.hidden_tag() }}
+    <label for="assignee_id">Исполнитель:</label>
+    {{ assign_form.assignee_id() }}
+    {{ assign_form.submit(class="button button-small") }}
+</form>
+{% elif current_user.has_role("developer") %}
+    {% if bug.assignee is none %}
+    <form class="inline-form" method="post" action="{{ url_for('bugs.take', bug_id=bug.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button button-small">Взять себе</button>
+    </form>
+    {% elif bug.assignee_id == current_user.id %}
+    <form class="inline-form" method="post" action="{{ url_for('bugs.release', bug_id=bug.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button button-small button-danger">Отказаться</button>
+    </form>
+    {% endif %}
+{% endif %}
+
 <h2>Шаги воспроизведения</h2>
 <p class="description">{{ bug.steps or "не указано" }}</p>
 

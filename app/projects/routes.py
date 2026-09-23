@@ -4,6 +4,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.access import get_project_or_403
+from app.assignments import unassign_user_bugs
 from app.decorators import role_required
 from app.models import Bug, Project, Role, User
 from app.projects import bp
@@ -115,6 +116,12 @@ def remove_member(project_id, user_id):
     user = db.get_or_404(User, user_id)
     if user in project.members:
         project.members.remove(user)
+        # Без доступа к проекту исполнителем быть нельзя — снимаем назначения
+        bugs = unassign_user_bugs(user, current_user, project=project)
         db.session.commit()
-        flash(f"{user.username} убран из проекта.", "info")
+        message = f"{user.username} убран из проекта."
+        if bugs:
+            numbers = ", ".join(f"#{bug.id}" for bug in bugs)
+            message += f" Снято назначение с багов: {numbers}."
+        flash(message, "info")
     return redirect(url_for("projects.detail", project_id=project.id))

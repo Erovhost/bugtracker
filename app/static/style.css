@@ -258,3 +258,18 @@ a.button {
     background: #e0e0e0;
     color: #555;
 }
+
+/* Форма выбора исполнителя в карточке — в одну строку */
+.assign-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-width: none;
+    margin: 12px 0;
+}
+
+.assign-form select {
+    padding: 4px 8px;
+    font-size: 14px;
+}

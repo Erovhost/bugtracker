@@ -4,10 +4,11 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.access import can_edit_bug, get_bug_or_403, get_project_or_403
+from app.assignments import assignee_candidates, can_be_assignee, unassign
 from app.bugs import bp
-from app.bugs.forms import BugForm
+from app.bugs.forms import AssignForm, BugForm
 from app.decorators import role_required
-from app.models import PRIORITY_LABELS, SEVERITY_LABELS, STATUS_LABELS, Bug, Project
+from app.models import PRIORITY_LABELS, SEVERITY_LABELS, STATUS_LABELS, Bug, Project, User
 
 
 # Словари подписей доступны во всех шаблонах приложения
@@ -61,13 +62,84 @@ def create(project_id):
     return render_template("bugs/create.html", form=form, project=project)
 
 
+def make_assign_form(bug):
+    """Форма выбора исполнителя с вариантами для проекта этого бага."""
+    form = AssignForm()
+    form.assignee_id.choices = [("", "— не назначен —")] + [
+        (str(user.id), user.username) for user in assignee_candidates(bug.project)
+    ]
+    return form
+
+
 @bp.route("/<int:bug_id>")
 @login_required
 def detail(bug_id):
     bug = get_bug_or_403(bug_id)
+    can_edit = can_edit_bug(current_user, bug)
+    assign_form = None
+    # Выбирать исполнителя могут те же, кто редактирует: автор и admin
+    if can_edit:
+        assign_form = make_assign_form(bug)
+        assign_form.assignee_id.data = str(bug.assignee_id) if bug.assignee_id else ""
     return render_template(
-        "bugs/detail.html", bug=bug, can_edit=can_edit_bug(current_user, bug)
+        "bugs/detail.html", bug=bug, can_edit=can_edit, assign_form=assign_form
     )
+
+
+@bp.route("/<int:bug_id>/assign", methods=["POST"])
+@login_required
+def assign(bug_id):
+    # admin и автор: назначить любого подходящего developer'а или снять назначение
+    bug = get_bug_or_403(bug_id)
+    if not can_edit_bug(current_user, bug):
+        abort(403)
+    form = make_assign_form(bug)
+    if not form.validate_on_submit():
+        flash("Выберите исполнителя из списка.", "error")
+    elif form.assignee_id.data == "":
+        if bug.assignee is not None:
+            unassign(bug, current_user)
+            db.session.commit()
+            flash("Назначение снято.", "info")
+    else:
+        user = db.session.get(User, int(form.assignee_id.data))
+        bug.assignee = user
+        bug.updater = current_user
+        db.session.commit()
+        flash(f"Исполнитель: {user.username}.", "success")
+    return redirect(url_for("bugs.detail", bug_id=bug.id))
+
+
+@bp.route("/<int:bug_id>/take", methods=["POST"])
+@login_required
+@role_required("developer")
+def take(bug_id):
+    # developer назначает себя, только если баг свободен
+    bug = get_bug_or_403(bug_id)
+    if bug.assignee is not None:
+        flash("У бага уже есть исполнитель.", "error")
+    elif not can_be_assignee(current_user, bug.project):
+        abort(403)
+    else:
+        bug.assignee = current_user
+        bug.updater = current_user
+        db.session.commit()
+        flash("Баг назначен на вас.", "success")
+    return redirect(url_for("bugs.detail", bug_id=bug.id))
+
+
+@bp.route("/<int:bug_id>/release", methods=["POST"])
+@login_required
+@role_required("developer")
+def release(bug_id):
+    # developer снимает назначение только с себя
+    bug = get_bug_or_403(bug_id)
+    if bug.assignee_id != current_user.id:
+        abort(403)
+    unassign(bug, current_user)
+    db.session.commit()
+    flash("Вы отказались от бага.", "info")
+    return redirect(url_for("bugs.detail", bug_id=bug.id))
 
 
 @bp.route("/<int:bug_id>/edit", methods=["GET", "POST"])

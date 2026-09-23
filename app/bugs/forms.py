@@ -31,3 +31,10 @@ class BugForm(FlaskForm):
         default="medium",
     )
     submit = SubmitField("Сохранить")
+
+
+class AssignForm(FlaskForm):
+    # Значения — строки: "" означает «не назначен», иначе id разработчика.
+    # Варианты задаёт маршрут, подменить id на чужой не получится.
+    assignee_id = SelectField("Исполнитель")
+    submit = SubmitField("Сохранить")
