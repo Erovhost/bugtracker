@@ -4,5 +4,29 @@
 
 {% block content %}
 <h1>Проекты</h1>
-<p>Страница в разработке.</p>
+
+{% if projects %}
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Создан</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                <td>{{ project.name }}</td>
+                <td>{{ project.description or "—" }}</td>
+                <td>{{ project.created_at.strftime("%d.%m.%Y") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p>Проектов пока нет.</p>
+{% endif %}
 {% endblock %}

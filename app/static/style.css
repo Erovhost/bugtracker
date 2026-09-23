@@ -152,3 +152,24 @@ form {
 .button:hover {
     background: #154a8c;
 }
+
+/* Таблицы. Обёртка даёт горизонтальную прокрутку на узком экране */
+.table-wrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.table th {
+    background: #f0f2f5;
+}
