@@ -62,6 +62,10 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def has_role(self, *role_names):
+        # user.has_role("admin") или user.has_role("tester", "developer")
+        return self.role.name in role_names
+
     def __repr__(self):
         return f"<User {self.username}>"
 

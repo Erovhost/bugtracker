@@ -13,7 +13,9 @@
             {% if current_user.is_authenticated %}
             <a href="{{ url_for('projects.index') }}">Проекты</a>
             <a href="{{ url_for('bugs.index') }}">Баги</a>
+            {% if current_user.has_role("admin") %}
             <a href="{{ url_for('admin.index') }}">Администрирование</a>
+            {% endif %}
             <span class="user">{{ current_user.username }} ({{ current_user.role.name }})</span>
             <form class="logout-form" method="post" action="{{ url_for('auth.logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
