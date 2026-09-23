@@ -1,11 +1,20 @@
 from flask import Flask
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 from config import Config
+
+# Объекты создаются здесь, а к приложению привязываются в create_app()
+db = SQLAlchemy()
+migrate = Migrate()
 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    db.init_app(app)
+    migrate.init_app(app, db)
 
     # Подключаем модули (blueprints)
     from app.projects import bp as projects_bp
