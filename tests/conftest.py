@@ -3,8 +3,9 @@
 pytest сам находит этот файл; его фикстуры доступны во всех тестах.
 
 Тесты работают с ОТДЕЛЬНОЙ базой из TEST_DATABASE_URL (имя на _test).
-Перед запуском схема пересоздаётся миграциями, после каждого теста
-данные очищаются (кроме справочника ролей).
+Перед запуском схема пересоздаётся миграциями, перед каждым тестом
+данные очищаются (кроме справочника ролей). Данные последнего теста
+остаются в базе — их можно посмотреть в psql для отладки.
 
 Важно: запросы тестового клиента выполняются ВНЕ app.app_context() —
 иначе Flask-Login закэширует пользователя между запросами (этап 3).
@@ -60,14 +61,20 @@ def app():
 
 @pytest.fixture(autouse=True)
 def clean_db(request):
-    """После каждого теста с базой — очистить данные (autouse: для всех тестов)."""
+    """Перед каждым тестом с базой — очистить данные (autouse: для всех тестов).
+
+    Очистка ДО теста: каждый тест начинает с пустой базы, а данные
+    последнего теста (в том числе упавшего) остаются в bugtracker_test
+    для просмотра. Код после yield выполнялся бы при любом исходе теста.
+    """
+    if "app" in request.fixturenames:
+        app = request.getfixturevalue("app")
+        with app.app_context():
+            db.session.execute(
+                sa.text(f"TRUNCATE {DATA_TABLES} RESTART IDENTITY CASCADE")
+            )
+            db.session.commit()
     yield
-    if "app" not in request.fixturenames:
-        return  # тесту база не нужна (например, модульные тесты workflow)
-    app = request.getfixturevalue("app")
-    with app.app_context():
-        db.session.execute(sa.text(f"TRUNCATE {DATA_TABLES} RESTART IDENTITY CASCADE"))
-        db.session.commit()
 
 
 @pytest.fixture
