@@ -22,6 +22,13 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Без ключа сессии и CSRF-защита небезопасны — не запускаемся
+    if not app.config.get("SECRET_KEY"):
+        raise RuntimeError(
+            "Не задан SECRET_KEY. Локально — в файле .env, на сервере — "
+            "в переменных окружения хостинга."
+        )
+
     db.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
@@ -49,10 +56,14 @@ def create_app(config_class=Config):
     from app.errors import register_error_handlers
     register_error_handlers(app)
 
-    # Журнал в файл logs/bugtracker.log (в тестах не пишем)
+    # Журнал: в файл logs/bugtracker.log или (на хостинге) в консоль.
+    # В тестах не пишем.
     if not app.testing:
-        from app.logs import is_server_start, setup_file_logging
-        setup_file_logging(app, app.config["LOG_DIR"])
+        from app.logs import is_server_start, setup_file_logging, setup_stdout_logging
+        if app.config["LOG_TO_STDOUT"]:
+            setup_stdout_logging(app)
+        else:
+            setup_file_logging(app, app.config["LOG_DIR"])
         if is_server_start(app):
             app.logger.info("Баг-трекер запущен")
 

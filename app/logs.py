@@ -2,9 +2,11 @@
 
 import logging
 import os
+import sys
 from logging.handlers import RotatingFileHandler
 
 import click
+from flask.logging import default_handler
 from werkzeug.serving import is_running_from_reloader
 
 LOG_FORMAT = "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
@@ -25,6 +27,22 @@ def setup_file_logging(app, log_dir):
     )
     handler.setFormatter(logging.Formatter(LOG_FORMAT))
     handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.INFO)
+    return handler
+
+
+def setup_stdout_logging(app):
+    """Журнал в консоль (стандартный вывод) — на хостинге его показывает панель Logs.
+
+    Файлы на бесплатном Render стираются при перезапуске, поэтому там журнал
+    в файл бесполезен. Включается переменной окружения LOG_TO_STDOUT=1.
+    """
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    handler.setLevel(logging.INFO)
+    # Встроенный обработчик Flask тоже пишет в консоль — убираем, чтобы не было дублей
+    app.logger.removeHandler(default_handler)
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
     return handler
