@@ -6,6 +6,15 @@ from app import db
 from app.models import Bug, Role, User, project_members
 
 
+# У закрытых и отклонённых багов исполнителя не меняют:
+# для closed это память о том, кто исправил.
+LOCKED_STATUSES = ("closed", "rejected")
+
+
+def assignee_locked(bug):
+    return bug.status in LOCKED_STATUSES
+
+
 def assignee_candidates(project):
     """Кого можно назначить исполнителем: активные developer — участники проекта."""
     query = (
@@ -39,12 +48,17 @@ def unassign(bug, actor):
 
 
 def unassign_user_bugs(user, actor, project=None):
-    """Снять пользователя со всех его багов (в одном проекте или во всех).
+    """Снять пользователя с его открытых багов (в одном проекте или во всех).
 
     Вызывается при удалении участника из проекта и при блокировке.
+    Закрытые и отклонённые баги не трогаем — исполнитель на них остаётся.
     Возвращает список багов, с которых снято назначение. Коммит — за вызывающим.
     """
-    query = sa.select(Bug).where(Bug.assignee_id == user.id).order_by(Bug.id)
+    query = (
+        sa.select(Bug)
+        .where(Bug.assignee_id == user.id, Bug.status.not_in(LOCKED_STATUSES))
+        .order_by(Bug.id)
+    )
     if project is not None:
         query = query.where(Bug.project_id == project.id)
     bugs = db.session.scalars(query).all()

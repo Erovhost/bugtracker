@@ -25,7 +25,14 @@
                 <td><span class="status status-{{ bug.status }}">{{ STATUS_LABELS[bug.status] }}</span></td>
                 <td>{{ SEVERITY_LABELS[bug.severity] }}</td>
                 <td>{{ PRIORITY_LABELS[bug.priority] }}</td>
-                <td>{{ bug.assignee.username if bug.assignee else "—" }}</td>
+                <td>
+                    {% if bug.assignee %}
+                    {{ bug.assignee.username }}
+                    {% if not bug.assignee.is_active %}<span class="blocked">заблокирован</span>{% endif %}
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -4,7 +4,12 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.access import can_edit_bug, get_bug_or_403, get_project_or_403
-from app.assignments import assignee_candidates, can_be_assignee, unassign
+from app.assignments import (
+    assignee_candidates,
+    assignee_locked,
+    can_be_assignee,
+    unassign,
+)
 from app.bugs import bp
 from app.bugs.forms import AssignForm, BugForm
 from app.decorators import role_required
@@ -77,18 +82,24 @@ def make_assign_form(bug):
 def detail(bug_id):
     bug = get_bug_or_403(bug_id)
     can_edit = can_edit_bug(current_user, bug)
+    locked = assignee_locked(bug)
     assign_form = None
-    # Выбирать исполнителя могут те же, кто редактирует: автор и admin
-    if can_edit:
+    # Выбирать исполнителя могут те же, кто редактирует: автор и admin.
+    # У закрытых и отклонённых багов исполнителя не меняют.
+    if can_edit and not locked:
         assign_form = make_assign_form(bug)
         assign_form.assignee_id.data = str(bug.assignee_id) if bug.assignee_id else ""
     return render_template(
         "bugs/detail.html",
         bug=bug,
         can_edit=can_edit,
+        assignee_locked=locked,
         assign_form=assign_form,
         transitions=available_transitions(current_user, bug),
     )
+
+
+LOCKED_MESSAGE = "У закрытых и отклонённых багов исполнителя не меняют."
 
 
 @bp.route("/<int:bug_id>/status", methods=["POST"])
@@ -118,6 +129,9 @@ def assign(bug_id):
     bug = get_bug_or_403(bug_id)
     if not can_edit_bug(current_user, bug):
         abort(403)
+    if assignee_locked(bug):
+        flash(LOCKED_MESSAGE, "error")
+        return redirect(url_for("bugs.detail", bug_id=bug.id))
     form = make_assign_form(bug)
     if not form.validate_on_submit():
         flash("Выберите исполнителя из списка.", "error")
@@ -141,7 +155,9 @@ def assign(bug_id):
 def take(bug_id):
     # developer назначает себя, только если баг свободен
     bug = get_bug_or_403(bug_id)
-    if bug.assignee is not None:
+    if assignee_locked(bug):
+        flash(LOCKED_MESSAGE, "error")
+    elif bug.assignee is not None:
         flash("У бага уже есть исполнитель.", "error")
     elif not can_be_assignee(current_user, bug.project):
         abort(403)
@@ -161,6 +177,9 @@ def release(bug_id):
     bug = get_bug_or_403(bug_id)
     if bug.assignee_id != current_user.id:
         abort(403)
+    if assignee_locked(bug):
+        flash(LOCKED_MESSAGE, "error")
+        return redirect(url_for("bugs.detail", bug_id=bug.id))
     unassign(bug, current_user)
     db.session.commit()
     flash("Вы отказались от бага.", "info")

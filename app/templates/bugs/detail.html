@@ -50,7 +50,14 @@
         </tr>
         <tr>
             <th>Исполнитель</th>
-            <td>{{ bug.assignee.username if bug.assignee else "не назначен" }}</td>
+            <td>
+                {% if bug.assignee %}
+                {{ bug.assignee.username }}
+                {% if not bug.assignee.is_active %}<span class="blocked">заблокирован</span>{% endif %}
+                {% else %}
+                не назначен
+                {% endif %}
+            </td>
         </tr>
         <tr>
             <th>Последнее изменение</th>
@@ -71,7 +78,7 @@
     {{ assign_form.assignee_id() }}
     {{ assign_form.submit(class="button button-small") }}
 </form>
-{% elif current_user.has_role("developer") %}
+{% elif current_user.has_role("developer") and not assignee_locked %}
     {% if bug.assignee is none %}
     <form class="inline-form" method="post" action="{{ url_for('bugs.take', bug_id=bug.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
