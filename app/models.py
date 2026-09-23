@@ -181,8 +181,11 @@ class Bug(db.Model):
     comments: so.Mapped[list["Comment"]] = so.relationship(
         back_populates="bug", cascade="all, delete-orphan"
     )
+    # История всегда по порядку записи (order_by — настройка Python, не БД)
     history: so.Mapped[list["StatusHistory"]] = so.relationship(
-        back_populates="bug", cascade="all, delete-orphan"
+        back_populates="bug",
+        cascade="all, delete-orphan",
+        order_by="StatusHistory.id",
     )
 
     def __repr__(self):

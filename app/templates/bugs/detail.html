@@ -100,4 +100,36 @@
 
 <h2>Фактический результат</h2>
 <p class="description">{{ bug.actual or "не указано" }}</p>
+
+<h2>История статусов</h2>
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Когда</th>
+                <th>Кто</th>
+                <th>Изменение</th>
+            </tr>
+        </thead>
+        <tbody>
+            {# Первая строка — создание бага (из полей самого бага, не из status_history) #}
+            <tr>
+                <td>{{ bug.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td>{{ bug.reporter.username }}</td>
+                <td>создан → <span class="status status-new">{{ STATUS_LABELS["new"] }}</span></td>
+            </tr>
+            {% for record in bug.history %}
+            <tr>
+                <td>{{ record.changed_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td>{{ record.changer.username }}</td>
+                <td>
+                    <span class="status status-{{ record.old_status }}">{{ STATUS_LABELS[record.old_status] }}</span>
+                    →
+                    <span class="status status-{{ record.new_status }}">{{ STATUS_LABELS[record.new_status] }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
