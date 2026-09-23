@@ -40,6 +40,10 @@ def create_app(config_class=Config):
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
+    # Консольные команды: flask create-admin
+    from app.cli import create_admin
+    app.cli.add_command(create_admin)
+
     return app
 
 
