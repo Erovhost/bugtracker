@@ -5,7 +5,6 @@ import sqlalchemy as sa
 from app import db
 from app.models import Bug, Role, User, project_members
 
-
 # У закрытых и отклонённых багов исполнителя не меняют:
 # для closed это память о том, кто исправил.
 LOCKED_STATUSES = ("closed", "rejected")

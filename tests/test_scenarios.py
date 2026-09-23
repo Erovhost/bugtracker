@@ -74,6 +74,14 @@ def test_scenarios_as_app_role(app, role_app, factory):
     def last_bug_id():
         return owner_check(lambda: db.session.scalar(sa.select(sa.func.max(Bug.id))))
 
+    def bug_state(bug_id):
+        """(статус, исполнитель, кто менял последним) — от имени владельца."""
+        def read():
+            bug = db.session.get(Bug, bug_id)
+            assignee = bug.assignee.username if bug.assignee else None
+            return bug.status, assignee, bug.updater.username
+        return owner_check(read)
+
     def history(bug_id):
         return owner_check(lambda: [
             (h.old_status, h.new_status, h.changer.username)
@@ -84,7 +92,8 @@ def test_scenarios_as_app_role(app, role_app, factory):
     step(1, adm.get("/admin/"), 200)
 
     step(2, post(adm, f"/admin/users/{ids['req']}/approve", {"role": "developer"}), 302)
-    assert owner_check(lambda: (user("req").status, user("req").role.name)) == ("active", "developer")
+    req_state = owner_check(lambda: (user("req").status, user("req").role.name))
+    assert req_state == ("active", "developer")
 
     step(3, post(adm, "/admin/users/new", {
         "username": "made", "email": "made@example.com",
@@ -106,7 +115,7 @@ def test_scenarios_as_app_role(app, role_app, factory):
     step(7, post(zoe, f"/bugs/project/{P}/new",
                  {"title": "B1", "severity": "major", "priority": "high"}), 302)
     b1 = last_bug_id()
-    assert owner_check(lambda: (db.session.get(Bug, b1).status, db.session.get(Bug, b1).updater.username)) == ("new", "zoe")
+    assert bug_state(b1) == ("new", None, "zoe")
 
     step(8, post(zoe, f"/bugs/project/{P}/new",
                  {"title": "B2", "severity": "minor", "priority": "low"}), 302)
@@ -139,7 +148,7 @@ def test_scenarios_as_app_role(app, role_app, factory):
 
     # --- Админ: участники, блокировка, роли ---
     step(16, post(adm, f"/project/{P}/members/{ids['dan']}/remove"), 302)
-    assert owner_check(lambda: (db.session.get(Bug, b2).status, db.session.get(Bug, b2).assignee)) == ("new", None)
+    assert bug_state(b2)[:2] == ("new", None)
     assert history(b2) == [("new", "in_progress", "dan"), ("in_progress", "new", "adm")]
 
     step(17, post(adm, f"/admin/users/{ids['bob']}/block"), 302)

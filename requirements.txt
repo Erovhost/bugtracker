@@ -31,6 +31,7 @@ pytest-playwright==0.9.0
 python-dotenv==1.2.3
 python-slugify==8.0.4
 requests==2.34.2
+ruff==0.16.8
 SQLAlchemy==2.0.54
 text-unidecode==1.3
 typing_extensions==4.16.0

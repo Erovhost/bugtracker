@@ -75,7 +75,9 @@ def test_blocked_user_is_logged_out_immediately(app, client, factory):
     assert client.get("/").status_code == 302
 
 
-@pytest.mark.parametrize("status, loaded", [("active", True), ("blocked", False), ("pending", False)])
+@pytest.mark.parametrize(
+    "status, loaded", [("active", True), ("blocked", False), ("pending", False)]
+)
 def test_user_loader_rejects_inactive(app, factory, status, loaded):
     # Второй уровень защиты: Flask-Login и так считает неактивного «не вошедшим»
     # (UserMixin.is_authenticated = is_active), но и загрузчик его не отдаёт.
