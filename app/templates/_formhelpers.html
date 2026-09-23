@@ -1,0 +1,10 @@
+{# Макрос: подпись, поле и ошибки под ним. Использование: render_field(form.username) #}
+{% macro render_field(field) %}
+<div class="form-field">
+    {{ field.label }}
+    {{ field(class="error-input" if field.errors else "") }}
+    {% for error in field.errors %}
+    <div class="field-error">{{ error }}</div>
+    {% endfor %}
+</div>
+{% endmacro %}

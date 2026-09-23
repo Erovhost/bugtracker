@@ -12,6 +12,7 @@ login = LoginManager()
 # Куда отправлять гостя, который открыл закрытую страницу
 login.login_view = "auth.login"
 login.login_message = "Войдите, чтобы открыть эту страницу."
+login.login_message_category = "info"
 
 
 def create_app(config_class=Config):

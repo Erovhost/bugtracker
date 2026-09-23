@@ -10,14 +10,26 @@
     <header class="topbar">
         <a class="logo" href="{{ url_for('projects.index') }}">Баг-трекер</a>
         <nav>
+            {% if current_user.is_authenticated %}
             <a href="{{ url_for('projects.index') }}">Проекты</a>
             <a href="{{ url_for('bugs.index') }}">Баги</a>
             <a href="{{ url_for('admin.index') }}">Администрирование</a>
+            <span class="user">{{ current_user.username }} ({{ current_user.role.name }})</span>
+            <a href="{{ url_for('auth.logout') }}">Выйти</a>
+            {% else %}
             <a href="{{ url_for('auth.login') }}">Вход</a>
+            {% endif %}
         </nav>
     </header>
 
     <main class="content">
+        {# Сообщения flash: показываются один раз #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
 </body>

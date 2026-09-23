@@ -1,8 +1,17 @@
 {% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
 
 {% block title %}Вход{% endblock %}
 
 {% block content %}
 <h1>Вход</h1>
-<p>Страница в разработке.</p>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.username) }}
+    {{ render_field(form.password) }}
+    <div class="form-field form-checkbox">
+        {{ form.remember_me() }} {{ form.remember_me.label }}
+    </div>
+    {{ form.submit(class="button") }}
+</form>
 {% endblock %}
