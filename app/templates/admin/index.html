@@ -1,8 +1,41 @@
 {% extends "base.html" %}
 
-{% block title %}Администрирование{% endblock %}
+{% block title %}Пользователи{% endblock %}
 
 {% block content %}
-<h1>Администрирование</h1>
-<p>Страница в разработке.</p>
+<h1>Пользователи</h1>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Логин</th>
+                <th>Почта</th>
+                <th>Роль</th>
+                <th>Статус</th>
+                <th>Зарегистрирован</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    {{ user.username }}
+                    {% if user.id == current_user.id %}<span class="muted">(это вы)</span>{% endif %}
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role.name }}</td>
+                <td>
+                    {% if user.is_active %}
+                    активен
+                    {% else %}
+                    <span class="blocked">неактивен</span>
+                    {% endif %}
+                </td>
+                <td>{{ user.created_at.strftime("%d.%m.%Y") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
