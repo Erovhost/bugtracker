@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.admin import bp
-from app.admin.forms import ApproveForm, RoleForm
+from app.admin.forms import ApproveForm, CreateUserForm, RoleForm
 from app.assignments import unassign_user_bugs
 from app.decorators import role_required
 from app.models import USER_STATUS_LABELS, Role, User
@@ -136,3 +136,27 @@ def change_role(user_id):
     db.session.commit()
     flash(message, "success")
     return back_to_list()
+
+
+@bp.route("/users/new", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def create_user():
+    form = CreateUserForm()
+    if form.validate_on_submit():
+        role = db.session.scalar(sa.select(Role).where(Role.name == form.role.data))
+        # Созданный админом пользователь сразу одобрен и активен
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            role=role,
+            is_active=True,
+            approved_at=sa.func.now(),
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(f"Пользователь {user.username} создан с ролью {role.name}.", "success")
+        return back_to_list()
+
+    return render_template("admin/create_user.html", form=form)

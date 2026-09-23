@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
+
+{% block title %}Новый пользователь{% endblock %}
+
+{% block content %}
+<h1>Новый пользователь</h1>
+<p class="muted">Пользователь будет сразу одобрен и активен. Сообщите ему логин и пароль.</p>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.username) }}
+    {{ render_field(form.email) }}
+    {{ render_field(form.password) }}
+    {{ render_field(form.password2) }}
+    {{ render_field(form.role) }}
+    {{ form.submit(class="button") }}
+</form>
+<p><a href="{{ url_for('admin.index') }}">← К списку пользователей</a></p>
+{% endblock %}
