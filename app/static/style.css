@@ -185,3 +185,13 @@ a.button {
 .table th {
     background: #f0f2f5;
 }
+
+.muted {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Сохраняем переносы строк из многострочного описания */
+.description {
+    white-space: pre-line;
+}

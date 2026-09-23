@@ -22,7 +22,7 @@
         <tbody>
             {% for project in projects %}
             <tr>
-                <td>{{ project.name }}</td>
+                <td><a href="{{ url_for('projects.detail', project_id=project.id) }}">{{ project.name }}</a></td>
                 <td>{{ project.description or "—" }}</td>
                 <td>{{ project.created_at.strftime("%d.%m.%Y") }}</td>
             </tr>
