@@ -44,6 +44,10 @@ def create_app(config_class=Config):
     from app.cli import create_admin
     app.cli.add_command(create_admin)
 
+    # Страницы ошибок 400/403/404/500
+    from app.errors import register_error_handlers
+    register_error_handlers(app)
+
     return app
 
 

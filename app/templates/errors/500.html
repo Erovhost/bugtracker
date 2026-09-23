@@ -1,0 +1,5 @@
+{% extends "errors/base_error.html" %}
+
+{% block error_code %}500{% endblock %}
+{% block error_title %}Внутренняя ошибка сервера{% endblock %}
+{% block error_text %}Что-то пошло не так. Мы уже записали ошибку в журнал — попробуйте повторить действие позже.{% endblock %}
