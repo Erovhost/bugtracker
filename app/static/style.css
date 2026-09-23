@@ -195,3 +195,28 @@ a.button {
 .description {
     white-space: pre-line;
 }
+
+.form-field select {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+}
+
+/* Маленькая форма с одной кнопкой внутри таблицы */
+.inline-form {
+    display: inline;
+    margin: 0;
+}
+
+.button-small {
+    padding: 4px 10px;
+    font-size: 14px;
+}
+
+.button-danger {
+    background: #c0392b;
+}
+
+.button-danger:hover {
+    background: #962d22;
+}

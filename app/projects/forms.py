@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
+from wtforms import SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
 from app import db
@@ -22,3 +22,10 @@ class ProjectForm(FlaskForm):
         project = db.session.scalar(sa.select(Project).where(Project.name == name.data))
         if project is not None:
             raise ValidationError("Проект с таким названием уже есть.")
+
+
+class AddMemberForm(FlaskForm):
+    # Варианты (choices) задаёт маршрут. SelectField сам проверяет,
+    # что пришло одно из разрешённых значений — подменить id не получится.
+    user_id = SelectField("Пользователь", coerce=int)
+    submit = SubmitField("Добавить")

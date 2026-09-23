@@ -23,6 +23,7 @@
             <tr>
                 <th>Логин</th>
                 <th>Роль</th>
+                {% if add_form %}<th></th>{% endif %}
             </tr>
         </thead>
         <tbody>
@@ -30,6 +31,15 @@
             <tr>
                 <td>{{ member.username }}</td>
                 <td>{{ member.role.name }}</td>
+                {% if add_form %}
+                <td>
+                    <form class="inline-form" method="post"
+                          action="{{ url_for('projects.remove_member', project_id=project.id, user_id=member.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="button button-small button-danger">Убрать</button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>
@@ -37,5 +47,22 @@
 </div>
 {% else %}
 <p>Участников пока нет.</p>
+{% endif %}
+
+{# Добавление участников — только для админа (add_form есть только у него) #}
+{% if add_form %}
+<h3>Добавить участника</h3>
+{% if add_form.user_id.choices %}
+<form method="post" action="{{ url_for('projects.add_member', project_id=project.id) }}">
+    {{ add_form.hidden_tag() }}
+    <div class="form-field">
+        {{ add_form.user_id.label }}
+        {{ add_form.user_id() }}
+    </div>
+    {{ add_form.submit(class="button") }}
+</form>
+{% else %}
+<p class="muted">Все активные тестировщики и разработчики уже в проекте.</p>
+{% endif %}
 {% endif %}
 {% endblock %}
