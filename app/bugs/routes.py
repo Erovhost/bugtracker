@@ -1,9 +1,9 @@
 import sqlalchemy as sa
-from flask import flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.access import get_bug_or_403, get_project_or_403
+from app.access import can_edit_bug, get_bug_or_403, get_project_or_403
 from app.bugs import bp
 from app.bugs.forms import BugForm
 from app.decorators import role_required
@@ -65,4 +65,32 @@ def create(project_id):
 @login_required
 def detail(bug_id):
     bug = get_bug_or_403(bug_id)
-    return render_template("bugs/detail.html", bug=bug)
+    return render_template(
+        "bugs/detail.html", bug=bug, can_edit=can_edit_bug(current_user, bug)
+    )
+
+
+@bp.route("/<int:bug_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit(bug_id):
+    bug = get_bug_or_403(bug_id)
+    if not can_edit_bug(current_user, bug):
+        abort(403)
+
+    form = BugForm(obj=bug)
+    if form.validate_on_submit():
+        # Переписываем только поля формы. Статуса в форме нет:
+        # он меняется только кнопками переходов жизненного цикла.
+        bug.title = form.title.data
+        bug.steps = form.steps.data or None
+        bug.expected = form.expected.data or None
+        bug.actual = form.actual.data or None
+        bug.environment = form.environment.data or None
+        bug.severity = form.severity.data
+        bug.priority = form.priority.data
+        bug.updater = current_user
+        db.session.commit()
+        flash("Изменения сохранены.", "success")
+        return redirect(url_for("bugs.detail", bug_id=bug.id))
+
+    return render_template("bugs/edit.html", form=form, bug=bug)

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
+
+{% block title %}Редактирование #{{ bug.id }}{% endblock %}
+
+{% block content %}
+<h1>Редактирование бага #{{ bug.id }}</h1>
+<p class="muted">Проект: {{ bug.project.name }}</p>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.title) }}
+    {{ render_field(form.steps) }}
+    {{ render_field(form.expected) }}
+    {{ render_field(form.actual) }}
+    {{ render_field(form.environment) }}
+    {{ render_field(form.severity) }}
+    {{ render_field(form.priority) }}
+    {{ form.submit(class="button") }}
+</form>
+<p><a href="{{ url_for('bugs.detail', bug_id=bug.id) }}">← Отмена</a></p>
+{% endblock %}

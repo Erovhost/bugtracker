@@ -21,6 +21,11 @@ def get_project_or_403(project_id):
     return project
 
 
+def can_edit_bug(user, bug):
+    # Редактировать поля бага могут только его автор и админ
+    return user.has_role("admin") or bug.reporter_id == user.id
+
+
 def get_bug_or_403(bug_id):
     """Загрузить баг для текущего пользователя.
 
