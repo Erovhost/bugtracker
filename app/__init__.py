@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
@@ -7,6 +8,10 @@ from config import Config
 # Объекты создаются здесь, а к приложению привязываются в create_app()
 db = SQLAlchemy()
 migrate = Migrate()
+login = LoginManager()
+# Куда отправлять гостя, который открыл закрытую страницу
+login.login_view = "auth.login"
+login.login_message = "Войдите, чтобы открыть эту страницу."
 
 
 def create_app(config_class=Config):
@@ -15,6 +20,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    login.init_app(app)
 
     # Подключаем модули (blueprints)
     from app.projects import bp as projects_bp

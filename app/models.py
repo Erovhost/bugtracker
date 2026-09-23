@@ -3,9 +3,10 @@ from typing import Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as so
+from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app import db
+from app import db, login
 
 # Связующая таблица «многие ко многим»: какой пользователь в каком проекте.
 # Своих данных у неё нет, поэтому это простая таблица, а не класс-модель.
@@ -30,7 +31,9 @@ class Role(db.Model):
         return f"<Role {self.name}>"
 
 
-class User(db.Model):
+# UserMixin добавляет методы, нужные Flask-Login.
+# Его свойство is_active перекрывает наша колонка is_active.
+class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -61,6 +64,17 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+
+# Flask-Login вызывает эту функцию при каждом запросе:
+# по id из сессии загружает пользователя из базы.
+@login.user_loader
+def load_user(user_id):
+    user = db.session.get(User, int(user_id))
+    # Заблокированного считаем вышедшим — блокировка действует сразу
+    if user is None or not user.is_active:
+        return None
+    return user
 
 
 class Project(db.Model):
