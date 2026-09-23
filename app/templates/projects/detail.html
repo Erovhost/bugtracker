@@ -18,6 +18,11 @@
 <p class="description">{{ project.description }}</p>
 {% endif %}
 
+{# Заводить баги может тестировщик — участник проекта (на эту страницу чужие не попадают) #}
+{% if current_user.has_role("tester") %}
+<p><a class="button" href="{{ url_for('bugs.create', project_id=project.id) }}">Сообщить о баге</a></p>
+{% endif %}
+
 <h2>Участники</h2>
 {% if project.members %}
 <div class="table-wrap">

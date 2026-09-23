@@ -8,6 +8,27 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
 
+# Допустимые значения полей бага и их подписи для людей.
+# Ключи должны совпадать с CHECK-ограничениями в модели Bug.
+SEVERITY_LABELS = {
+    "critical": "Критическая",
+    "major": "Высокая",
+    "minor": "Низкая",
+    "trivial": "Незначительная",
+}
+PRIORITY_LABELS = {
+    "high": "Высокий",
+    "medium": "Средний",
+    "low": "Низкий",
+}
+STATUS_LABELS = {
+    "new": "Новый",
+    "in_progress": "В работе",
+    "fixed": "Исправлен",
+    "rejected": "Отклонён",
+    "closed": "Закрыт",
+}
+
 # Связующая таблица «многие ко многим»: какой пользователь в каком проекте.
 # Своих данных у неё нет, поэтому это простая таблица, а не класс-модель.
 project_members = sa.Table(
