@@ -111,9 +111,11 @@ class Factory:
     def project(self, name, creator_id, member_ids=()):
         with self.app.app_context():
             project = Project(name=name, creator=db.session.get(User, creator_id))
+            # Сначала в сессию, потом участники: иначе поиск участника
+            # запустит автосохранение проекта, которого ещё нет в сессии
+            db.session.add(project)
             for member_id in member_ids:
                 project.members.append(db.session.get(User, member_id))
-            db.session.add(project)
             db.session.commit()
             return project.id
 
