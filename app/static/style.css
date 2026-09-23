@@ -273,3 +273,36 @@ a.button {
     padding: 4px 8px;
     font-size: 14px;
 }
+
+/* Статус и кнопки переходов в одну строку */
+.status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+/* Форма отклонения с причиной */
+.reject-form {
+    max-width: 500px;
+    margin: 12px 0;
+    padding: 10px 12px;
+    background: #fdf3f2;
+    border: 1px solid #f1b8b2;
+    border-radius: 4px;
+}
+
+.reject-form label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.reject-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    padding: 6px;
+    font-family: inherit;
+}

@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from flask import abort, flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -9,6 +9,7 @@ from app.bugs import bp
 from app.bugs.forms import AssignForm, BugForm
 from app.decorators import role_required
 from app.models import PRIORITY_LABELS, SEVERITY_LABELS, STATUS_LABELS, Bug, Project, User
+from app.workflow import apply_transition, available_transitions, check_transition
 
 
 # Словари подписей доступны во всех шаблонах приложения
@@ -82,8 +83,32 @@ def detail(bug_id):
         assign_form = make_assign_form(bug)
         assign_form.assignee_id.data = str(bug.assignee_id) if bug.assignee_id else ""
     return render_template(
-        "bugs/detail.html", bug=bug, can_edit=can_edit, assign_form=assign_form
+        "bugs/detail.html",
+        bug=bug,
+        can_edit=can_edit,
+        assign_form=assign_form,
+        transitions=available_transitions(current_user, bug),
     )
+
+
+@bp.route("/<int:bug_id>/status", methods=["POST"])
+@login_required
+def change_status(bug_id):
+    # CSRF-токен проверяет CSRFProtect; правила перехода — app/workflow.py
+    bug = get_bug_or_403(bug_id)
+    new_status = request.form.get("new_status", "")
+    comment = request.form.get("comment")
+
+    error = check_transition(current_user, bug, new_status, comment)
+    if error is not None:
+        flash(error, "error")
+        return redirect(url_for("bugs.detail", bug_id=bug.id))
+
+    # Смена статуса, комментарий и запись триггера в историю — одна транзакция
+    result = apply_transition(current_user, bug, new_status, comment)
+    db.session.commit()
+    flash(f"Статус изменён: «{STATUS_LABELS[result]}».", "success")
+    return redirect(url_for("bugs.detail", bug_id=bug.id))
 
 
 @bp.route("/<int:bug_id>/assign", methods=["POST"])

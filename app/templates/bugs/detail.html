@@ -10,9 +10,29 @@
 <p><a href="{{ url_for('bugs.edit', bug_id=bug.id) }}">Редактировать</a></p>
 {% endif %}
 
-<p>
+<div class="status-bar">
     <span class="status status-{{ bug.status }}">{{ STATUS_LABELS[bug.status] }}</span>
-</p>
+
+    {# Кнопки переходов: только те, что доступны текущему пользователю #}
+    {% for new_status, label in transitions if new_status != "rejected" %}
+    <form class="inline-form" method="post" action="{{ url_for('bugs.change_status', bug_id=bug.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="new_status" value="{{ new_status }}">
+        <button type="submit" class="button button-small">{{ label }}</button>
+    </form>
+    {% endfor %}
+</div>
+
+{# Отклонение — только с причиной #}
+{% for new_status, label in transitions if new_status == "rejected" %}
+<form class="reject-form" method="post" action="{{ url_for('bugs.change_status', bug_id=bug.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="new_status" value="rejected">
+    <label for="reject-comment">Причина отклонения</label>
+    <textarea id="reject-comment" name="comment" rows="2" required></textarea>
+    <button type="submit" class="button button-small button-danger">{{ label }}</button>
+</form>
+{% endfor %}
 
 <div class="table-wrap">
     <table class="table props">
@@ -55,7 +75,7 @@
     {% if bug.assignee is none %}
     <form class="inline-form" method="post" action="{{ url_for('bugs.take', bug_id=bug.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="button button-small">Взять себе</button>
+        <button type="submit" class="button button-small">Назначить на себя</button>
     </form>
     {% elif bug.assignee_id == current_user.id %}
     <form class="inline-form" method="post" action="{{ url_for('bugs.release', bug_id=bug.id) }}">
