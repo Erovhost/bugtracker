@@ -2,12 +2,15 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 
 from config import Config
 
 # Объекты создаются здесь, а к приложению привязываются в create_app()
 db = SQLAlchemy()
 migrate = Migrate()
+# CSRF-защита для всех POST-запросов приложения, даже без класса формы
+csrf = CSRFProtect()
 login = LoginManager()
 # Куда отправлять гостя, который открыл закрытую страницу
 login.login_view = "auth.login"
@@ -21,6 +24,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)
     login.init_app(app)
 
     # Подключаем модули (blueprints)

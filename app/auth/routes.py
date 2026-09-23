@@ -43,7 +43,9 @@ def login():
     return render_template("auth/login.html", form=form)
 
 
-@bp.route("/logout")
+# Только POST: выход меняет состояние, а GET-ссылку может «нажать» чужой сайт.
+# CSRF-токен проверяет CSRFProtect.
+@bp.route("/logout", methods=["POST"])
 def logout():
     logout_user()
     flash("Вы вышли из системы.", "info")
