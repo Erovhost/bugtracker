@@ -5,5 +5,43 @@
 
 {% block content %}
 <h1>Баги</h1>
+
+{# Фильтры — GET: ничего не меняют, значения попадают в адрес страницы #}
+<form class="filters" method="get" action="{{ url_for('bugs.index') }}">
+    <label>
+        Статус
+        <select name="status">
+            <option value="">все</option>
+            {% for code, label in STATUS_LABELS.items() %}
+            <option value="{{ code }}" {% if filters.status == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Серьёзность
+        <select name="severity">
+            <option value="">все</option>
+            {% for code, label in SEVERITY_LABELS.items() %}
+            <option value="{{ code }}" {% if filters.severity == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Исполнитель
+        <select name="assignee">
+            <option value="">все</option>
+            <option value="none" {% if filters.assignee == "none" %}selected{% endif %}>не назначен</option>
+            {% for user in assignees %}
+            <option value="{{ user.id }}" {% if filters.assignee == user.id|string %}selected{% endif %}>
+                {{ user.username }}{% if not user.is_active %} (заблокирован){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit" class="button button-small">Показать</button>
+    <a href="{{ url_for('bugs.index') }}">Сбросить</a>
+</form>
+
+<p class="muted">Найдено: {{ bugs|length }}</p>
 {{ bug_table(bugs, show_project=True) }}
 {% endblock %}

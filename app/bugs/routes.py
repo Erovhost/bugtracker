@@ -35,15 +35,57 @@ def inject_labels():
     }
 
 
+def visible_bugs_query():
+    """Запрос «баги, которые видит текущий пользователь».
+
+    Админ видит все баги, остальные — баги своих проектов.
+    """
+    query = sa.select(Bug)
+    if not current_user.has_role("admin"):
+        query = query.join(Bug.project).where(Project.members.contains(current_user))
+    return query
+
+
 @bp.route("/")
 @login_required
 def index():
-    # Админ видит все баги, остальные — баги своих проектов. Новые сверху.
-    query = sa.select(Bug).order_by(Bug.id.desc())
-    if not current_user.has_role("admin"):
-        query = query.join(Bug.project).where(Project.members.contains(current_user))
-    bugs = db.session.scalars(query).all()
-    return render_template("bugs/index.html", bugs=bugs)
+    query = visible_bugs_query()
+
+    # Исполнители для фильтра — только те, кто назначен на видимые баги.
+    # with_only_columns: тот же запрос, но выбираем только колонку assignee_id.
+    assignees = db.session.scalars(
+        sa.select(User)
+        .where(User.id.in_(query.with_only_columns(Bug.assignee_id)))
+        .order_by(User.username)
+    ).all()
+
+    # Фильтры приходят в адресе (GET): /bugs/?status=new&severity=major&assignee=5
+    # Неизвестные значения игнорируем.
+    status = request.args.get("status", "")
+    if status in STATUS_LABELS:
+        query = query.where(Bug.status == status)
+    else:
+        status = ""
+
+    severity = request.args.get("severity", "")
+    if severity in SEVERITY_LABELS:
+        query = query.where(Bug.severity == severity)
+    else:
+        severity = ""
+
+    assignee = request.args.get("assignee", "")
+    if assignee == "none":
+        query = query.where(Bug.assignee_id.is_(None))
+    elif assignee.isdigit():
+        query = query.where(Bug.assignee_id == int(assignee))
+    else:
+        assignee = ""
+
+    bugs = db.session.scalars(query.order_by(Bug.id.desc())).all()
+    filters = {"status": status, "severity": severity, "assignee": assignee}
+    return render_template(
+        "bugs/index.html", bugs=bugs, assignees=assignees, filters=filters
+    )
 
 
 @bp.route("/project/<int:project_id>/new", methods=["GET", "POST"])

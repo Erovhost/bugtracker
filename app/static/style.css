@@ -370,3 +370,26 @@ a.button {
     color: #962d22;
     background: #f6d7d3;
 }
+
+/* Строка фильтров над списком багов */
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    max-width: none;
+    margin-bottom: 12px;
+}
+
+.filters label {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    color: #555;
+}
+
+.filters select {
+    margin-top: 2px;
+    padding: 4px 8px;
+    font-size: 14px;
+}
