@@ -21,6 +21,11 @@ PRIORITY_LABELS = {
     "medium": "Средний",
     "low": "Низкий",
 }
+USER_STATUS_LABELS = {
+    "pending": "ожидает одобрения",
+    "active": "активен",
+    "blocked": "заблокирован",
+}
 STATUS_LABELS = {
     "new": "Новый",
     "in_progress": "В работе",
@@ -67,6 +72,9 @@ class User(UserMixin, db.Model):
     is_active: so.Mapped[bool] = so.mapped_column(
         default=True, server_default=sa.true()
     )
+    # NULL — заявка на регистрацию ещё не одобрена админом.
+    # Заполнено + is_active = false — пользователь заблокирован.
+    approved_at: so.Mapped[Optional[datetime]] = so.mapped_column()
     created_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
 
     # Роль пользователя: user.role
@@ -82,6 +90,15 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def status(self):
+        """Статус учётной записи: pending (ждёт одобрения), active, blocked."""
+        if self.approved_at is None:
+            return "pending"
+        if self.is_active:
+            return "active"
+        return "blocked"
 
     def has_role(self, *role_names):
         # user.has_role("admin") или user.has_role("tester", "developer")

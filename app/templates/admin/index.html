@@ -26,11 +26,7 @@
                 <td>{{ user.email }}</td>
                 <td>{{ user.role.name }}</td>
                 <td>
-                    {% if user.is_active %}
-                    активен
-                    {% else %}
-                    <span class="blocked">неактивен</span>
-                    {% endif %}
+                    <span class="user-status user-status-{{ user.status }}">{{ USER_STATUS_LABELS[user.status] }}</span>
                 </td>
                 <td>{{ user.created_at.strftime("%d.%m.%Y") }}</td>
             </tr>

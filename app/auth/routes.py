@@ -29,9 +29,12 @@ def login():
         if user is None or not user.check_password(form.password.data):
             flash("Неверный логин или пароль.", "error")
             return render_template("auth/login.html", form=form)
-        # О блокировке говорим только тому, кто знает пароль
-        if not user.is_active:
-            flash("Аккаунт заблокирован или ещё не одобрен администратором.", "error")
+        # О статусе аккаунта говорим только тому, кто знает пароль
+        if user.status == "pending":
+            flash("Аккаунт ещё не одобрен администратором.", "error")
+            return render_template("auth/login.html", form=form)
+        if user.status == "blocked":
+            flash("Аккаунт заблокирован. Обратитесь к администратору.", "error")
             return render_template("auth/login.html", form=form)
 
         login_user(user, remember=form.remember_me.data)
@@ -50,8 +53,8 @@ def register():
 
     form = RegistrationForm()
     if form.validate_on_submit():
-        # Новый аккаунт заблокирован, пока админ его не одобрит и не назначит роль.
-        # role_id обязателен, поэтому ставим временную роль tester.
+        # Заявка: approved_at = NULL и is_active = false, пока админ её не одобрит
+        # и не назначит роль. role_id обязателен, поэтому временная роль tester.
         tester = db.session.scalar(sa.select(Role).where(Role.name == "tester"))
         user = User(
             username=form.username.data,

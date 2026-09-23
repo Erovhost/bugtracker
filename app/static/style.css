@@ -349,3 +349,24 @@ a.button {
     border: 1px solid #bbb;
     border-radius: 4px;
 }
+
+/* Статус пользователя в админке */
+.user-status {
+    display: inline-block;
+    padding: 1px 8px;
+    font-size: 13px;
+    border-radius: 8px;
+}
+
+.user-status-pending {
+    background: #fff1c2;
+}
+
+.user-status-active {
+    background: #d8f0dc;
+}
+
+.user-status-blocked {
+    color: #962d22;
+    background: #f6d7d3;
+}

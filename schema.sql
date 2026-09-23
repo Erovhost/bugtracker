@@ -18,6 +18,7 @@ CREATE TABLE users (
     password_hash VARCHAR(256) NOT NULL,
     role_id       INTEGER      NOT NULL REFERENCES roles (id),
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    approved_at   TIMESTAMP,              -- NULL: заявка ещё не одобрена
     created_at    TIMESTAMP    NOT NULL DEFAULT now()
 );
 

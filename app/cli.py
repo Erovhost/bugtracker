@@ -25,7 +25,14 @@ def create_admin(username, email, password):
     if admin_role is None:
         raise click.ClickException("Роли admin нет в базе. Выполните: flask db upgrade")
 
-    user = User(username=username, email=email, role=admin_role, is_active=True)
+    # Созданный командой админ сразу одобрен (время ставит сама база)
+    user = User(
+        username=username,
+        email=email,
+        role=admin_role,
+        is_active=True,
+        approved_at=sa.func.now(),
+    )
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
