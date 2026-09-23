@@ -80,8 +80,12 @@ git clone <адрес репозитория> bugtracker
 cd bugtracker
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
+
+`requirements-dev.txt` — приложение плюс инструменты разработки (pytest,
+Playwright, ruff). На сервер ставится только `requirements.txt`: приложение и
+веб-сервер gunicorn.
 
 Если PowerShell запрещает запуск `Activate.ps1`:
 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
