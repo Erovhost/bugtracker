@@ -3,6 +3,7 @@ from typing import Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as so
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db
 
@@ -50,6 +51,13 @@ class User(db.Model):
     projects: so.Mapped[list["Project"]] = so.relationship(
         secondary=project_members, back_populates="members"
     )
+
+    def set_password(self, password):
+        # В базе храним только хэш, сам пароль — никогда
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return f"<User {self.username}>"
