@@ -3,10 +3,12 @@
 Приложение запускается «живым» сервером на тестовой базе, браузер
 открывает страницы, заполняет поля и нажимает кнопки, как человек.
 
+Браузер — установленный Microsoft Edge (addopts в pytest.ini), скачивать
+браузеры Playwright не нужно. Для Chrome: pytest --browser-channel chrome.
+
 Запуск:
-    pytest -m e2e                     # браузер без окна
+    pytest -m e2e                         # браузер без окна
     pytest -m e2e --headed --slowmo 500   # смотреть, как браузер работает
-Первый раз нужно скачать браузер: python -m playwright install chromium
 """
 
 import threading
