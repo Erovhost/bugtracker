@@ -40,9 +40,10 @@ def create_app(config_class=Config):
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
-    # Консольные команды: flask create-admin
-    from app.cli import create_admin
+    # Консольные команды: flask create-admin, flask seed-demo
+    from app.cli import create_admin, seed_demo
     app.cli.add_command(create_admin)
+    app.cli.add_command(seed_demo)
 
     # Страницы ошибок 400/403/404/500
     from app.errors import register_error_handlers
