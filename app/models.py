@@ -70,6 +70,105 @@ class Project(db.Model):
     members: so.Mapped[list["User"]] = so.relationship(
         secondary=project_members, back_populates="projects"
     )
+    # Баги проекта: project.bugs
+    bugs: so.Mapped[list["Bug"]] = so.relationship(back_populates="project")
 
     def __repr__(self):
         return f"<Project {self.name}>"
+
+
+class Bug(db.Model):
+    __tablename__ = "bugs"
+    # Допустимые значения проверяет сама база (CHECK)
+    __table_args__ = (
+        sa.CheckConstraint(
+            "severity IN ('critical', 'major', 'minor', 'trivial')",
+            name="ck_bugs_severity",
+        ),
+        sa.CheckConstraint(
+            "priority IN ('high', 'medium', 'low')",
+            name="ck_bugs_priority",
+        ),
+        sa.CheckConstraint(
+            "status IN ('new', 'in_progress', 'fixed', 'rejected', 'closed')",
+            name="ck_bugs_status",
+        ),
+    )
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    project_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("projects.id"), index=True
+    )
+    title: so.Mapped[str] = so.mapped_column(sa.String(200))
+    steps: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
+    expected: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
+    actual: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
+    environment: so.Mapped[Optional[str]] = so.mapped_column(sa.String(200))
+    severity: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
+    priority: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
+    status: so.Mapped[str] = so.mapped_column(
+        sa.String(20), index=True, default="new", server_default="new"
+    )
+    reporter_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("users.id"))
+    assignee_id: so.Mapped[Optional[int]] = so.mapped_column(
+        sa.ForeignKey("users.id"), index=True
+    )
+    updated_by: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey("users.id"))
+    created_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
+    # onupdate — SQLAlchemy обновляет время при каждом UPDATE бага
+    updated_at: so.Mapped[datetime] = so.mapped_column(
+        server_default=sa.func.now(), onupdate=sa.func.now()
+    )
+
+    project: so.Mapped["Project"] = so.relationship(back_populates="bugs")
+    # Три связи с users, поэтому для каждой указываем, через какую колонку
+    reporter: so.Mapped["User"] = so.relationship(foreign_keys=[reporter_id])
+    assignee: so.Mapped[Optional["User"]] = so.relationship(foreign_keys=[assignee_id])
+    updater: so.Mapped[Optional["User"]] = so.relationship(foreign_keys=[updated_by])
+    # Комментарии и история удаляются вместе с багом
+    comments: so.Mapped[list["Comment"]] = so.relationship(
+        back_populates="bug", cascade="all, delete-orphan"
+    )
+    history: so.Mapped[list["StatusHistory"]] = so.relationship(
+        back_populates="bug", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self):
+        return f"<Bug {self.id} {self.status}>"
+
+
+class Comment(db.Model):
+    __tablename__ = "comments"
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    bug_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("bugs.id", ondelete="CASCADE")
+    )
+    author_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("users.id"))
+    text: so.Mapped[str] = so.mapped_column(sa.Text)
+    created_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
+
+    bug: so.Mapped["Bug"] = so.relationship(back_populates="comments")
+    author: so.Mapped["User"] = so.relationship()
+
+    def __repr__(self):
+        return f"<Comment {self.id} on bug {self.bug_id}>"
+
+
+class StatusHistory(db.Model):
+    __tablename__ = "status_history"
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    bug_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey("bugs.id", ondelete="CASCADE")
+    )
+    old_status: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
+    new_status: so.Mapped[str] = so.mapped_column(sa.String(20))
+    changed_by: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey("users.id"))
+    changed_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
+
+    bug: so.Mapped["Bug"] = so.relationship(back_populates="history")
+    changer: so.Mapped[Optional["User"]] = so.relationship()
+
+    def __repr__(self):
+        return f"<StatusHistory bug {self.bug_id}: {self.old_status} -> {self.new_status}>"
