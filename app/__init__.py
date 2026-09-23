@@ -30,3 +30,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     return app
+
+
+# Импорт внизу: models.py сам импортирует db из этого файла
+from app import models  # noqa: E402, F401
