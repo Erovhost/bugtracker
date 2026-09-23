@@ -91,17 +91,16 @@ CREATE INDEX ix_bugs_assignee_id  ON bugs (assignee_id);
 -- Кто сменил статус, берётся из bugs.updated_by.
 CREATE FUNCTION log_bug_status_change() RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.status <> OLD.status THEN
-        INSERT INTO status_history (bug_id, old_status, new_status, changed_by)
-        VALUES (NEW.id, OLD.status, NEW.status, NEW.updated_by);
-    END IF;
-    RETURN NEW;
+    INSERT INTO status_history (bug_id, old_status, new_status, changed_by)
+    VALUES (NEW.id, OLD.status, NEW.status, NEW.updated_by);
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_bug_status_change
+CREATE TRIGGER trg_bugs_status_history
     AFTER UPDATE OF status ON bugs
     FOR EACH ROW
+    WHEN (OLD.status IS DISTINCT FROM NEW.status)
     EXECUTE FUNCTION log_bug_status_change();
 
 -- Справочные данные
