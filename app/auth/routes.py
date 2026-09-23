@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_user, logout_user
 
 from app import db
@@ -27,9 +27,19 @@ def login():
             sa.select(User).where(User.username == form.username.data)
         )
         if user is None or not user.check_password(form.password.data):
+            # Пароль в журнал не пишем никогда — только введённый логин
+            current_app.logger.warning(
+                "Неудачный вход: логин «%s», IP %s",
+                form.username.data, request.remote_addr,
+            )
             flash("Неверный логин или пароль.", "error")
             return render_template("auth/login.html", form=form)
         # О статусе аккаунта говорим только тому, кто знает пароль
+        if user.status != "active":
+            current_app.logger.warning(
+                "Попытка входа неактивного пользователя «%s» (%s), IP %s",
+                user.username, user.status, request.remote_addr,
+            )
         if user.status == "pending":
             flash("Аккаунт ещё не одобрен администратором.", "error")
             return render_template("auth/login.html", form=form)
@@ -38,6 +48,9 @@ def login():
             return render_template("auth/login.html", form=form)
 
         login_user(user, remember=form.remember_me.data)
+        current_app.logger.info(
+            "Вход: «%s» (%s), IP %s", user.username, user.role.name, request.remote_addr
+        )
         next_page = request.args.get("next")
         if not is_safe_next(next_page):
             next_page = url_for("projects.index")
@@ -65,6 +78,9 @@ def register():
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
+        current_app.logger.info(
+            "Новая заявка на регистрацию: «%s», IP %s", user.username, request.remote_addr
+        )
         flash(
             "Заявка на регистрацию отправлена. Войти можно будет "
             "после одобрения администратором.",
@@ -79,6 +95,8 @@ def register():
 # CSRF-токен проверяет CSRFProtect.
 @bp.route("/logout", methods=["POST"])
 def logout():
+    if current_user.is_authenticated:
+        current_app.logger.info("Выход: «%s»", current_user.username)
     logout_user()
     flash("Вы вышли из системы.", "info")
     return redirect(url_for("auth.login"))

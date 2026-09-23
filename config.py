@@ -12,6 +12,8 @@ load_dotenv(os.path.join(basedir, ".env"))
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    # Папка журнала (logs/ в .gitignore)
+    LOG_DIR = os.path.join(basedir, "logs")
 
 
 class TestConfig(Config):

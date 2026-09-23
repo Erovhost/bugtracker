@@ -1,17 +1,34 @@
 """Страницы ошибок 400/403/404/500 в оформлении сайта."""
 
-from flask import render_template
+from flask import current_app, render_template, request
+from flask_login import current_user
 from flask_wtf.csrf import CSRFError
 
 from app import db
 
 
+def who():
+    """Кто сделал запрос — для журнала."""
+    if current_user.is_authenticated:
+        return f"пользователь «{current_user.username}»"
+    return "гость"
+
+
 def csrf_error(error):
     # Устаревший или чужой CSRF-токен: форма долго была открыта, сессия сменилась
+    current_app.logger.warning(
+        "Отклонён запрос без верного CSRF-токена: %s %s, %s, IP %s",
+        request.method, request.path, who(), request.remote_addr,
+    )
     return render_template("errors/400.html"), 400
 
 
 def forbidden(error):
+    # Попытка открыть чужое — повод присмотреться
+    current_app.logger.warning(
+        "Отказ в доступе (403): %s %s, %s, IP %s",
+        request.method, request.path, who(), request.remote_addr,
+    )
     return render_template("errors/403.html"), 403
 
 

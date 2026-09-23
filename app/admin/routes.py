@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from flask import flash, redirect, render_template, url_for
+from flask import current_app, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -12,6 +12,11 @@ from app.models import USER_STATUS_LABELS, Role, User
 
 def back_to_list():
     return redirect(url_for("admin.index"))
+
+
+def log_admin(action):
+    # Журнал действий администратора: кто и что сделал
+    current_app.logger.info("Админ «%s» %s", current_user.username, action)
 
 
 @bp.route("/")
@@ -57,6 +62,7 @@ def approve(user_id):
     user.approved_at = sa.func.now()
     user.is_active = True
     db.session.commit()
+    log_admin(f"одобрил заявку «{user.username}», роль {user.role.name}")
     flash(f"{user.username} одобрен с ролью {user.role.name}.", "success")
     return back_to_list()
 
@@ -79,6 +85,7 @@ def block(user_id):
     # во всех проектах (closed и rejected не трогаем — правило из ТЗ)
     bugs = unassign_user_bugs(user, current_user)
     db.session.commit()
+    log_admin(f"заблокировал «{user.username}», снято назначений: {len(bugs)}")
     message = f"{user.username} заблокирован."
     if bugs:
         numbers = ", ".join(f"#{bug.id}" for bug in bugs)
@@ -97,6 +104,7 @@ def unblock(user_id):
         return back_to_list()
     user.is_active = True
     db.session.commit()
+    log_admin(f"разблокировал «{user.username}»")
     flash(f"{user.username} разблокирован.", "success")
     return back_to_list()
 
@@ -134,6 +142,7 @@ def change_role(user_id):
             numbers = ", ".join(f"#{bug.id}" for bug in bugs)
             message += f" Снято назначение с багов: {numbers}."
     db.session.commit()
+    log_admin(f"сменил роль «{user.username}»: {old_role} → {user.role.name}")
     flash(message, "success")
     return back_to_list()
 
@@ -156,6 +165,7 @@ def create_user():
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
+        log_admin(f"создал пользователя «{user.username}», роль {role.name}")
         flash(f"Пользователь {user.username} создан с ролью {role.name}.", "success")
         return back_to_list()
 

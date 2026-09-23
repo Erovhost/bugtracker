@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from flask import flash, redirect, render_template, url_for
+from flask import current_app, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -51,6 +51,9 @@ def create():
         )
         db.session.add(project)
         db.session.commit()
+        current_app.logger.info(
+            "Админ «%s» создал проект «%s»", current_user.username, project.name
+        )
         flash(f"Проект «{project.name}» создан.", "success")
         return redirect(url_for("projects.detail", project_id=project.id))
 
@@ -84,6 +87,9 @@ def edit(project_id):
         project.name = form.name.data
         project.description = form.description.data or None
         db.session.commit()
+        current_app.logger.info(
+            "Админ «%s» изменил проект «%s»", current_user.username, project.name
+        )
         flash("Изменения сохранены.", "success")
         return redirect(url_for("projects.detail", project_id=project.id))
 
@@ -101,6 +107,10 @@ def add_member(project_id):
         user = db.session.get(User, form.user_id.data)
         project.members.append(user)
         db.session.commit()
+        current_app.logger.info(
+            "Админ «%s» добавил «%s» в проект «%s»",
+            current_user.username, user.username, project.name,
+        )
         flash(f"{user.username} добавлен в проект.", "success")
     else:
         flash("Не удалось добавить: выберите пользователя из списка.", "error")
@@ -119,6 +129,10 @@ def remove_member(project_id, user_id):
         # Без доступа к проекту исполнителем быть нельзя — снимаем назначения
         bugs = unassign_user_bugs(user, current_user, project=project)
         db.session.commit()
+        current_app.logger.info(
+            "Админ «%s» убрал «%s» из проекта «%s», снято назначений: %s",
+            current_user.username, user.username, project.name, len(bugs),
+        )
         message = f"{user.username} убран из проекта."
         if bugs:
             numbers = ", ".join(f"#{bug.id}" for bug in bugs)

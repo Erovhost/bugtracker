@@ -48,6 +48,12 @@ def create_app(config_class=Config):
     from app.errors import register_error_handlers
     register_error_handlers(app)
 
+    # Журнал в файл logs/bugtracker.log (в тестах не пишем)
+    if not app.testing:
+        from app.logs import setup_file_logging
+        setup_file_logging(app, app.config["LOG_DIR"])
+        app.logger.info("Баг-трекер запущен")
+
     return app
 
 
