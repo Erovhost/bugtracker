@@ -4,8 +4,8 @@ from flask_login import current_user, login_user, logout_user
 
 from app import db
 from app.auth import bp
-from app.auth.forms import LoginForm
-from app.models import User
+from app.auth.forms import LoginForm, RegistrationForm
+from app.models import Role, User
 
 
 def is_safe_next(url):
@@ -41,6 +41,35 @@ def login():
         return redirect(next_page)
 
     return render_template("auth/login.html", form=form)
+
+
+@bp.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("projects.index"))
+
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # Новый аккаунт заблокирован, пока админ его не одобрит и не назначит роль.
+        # role_id обязателен, поэтому ставим временную роль tester.
+        tester = db.session.scalar(sa.select(Role).where(Role.name == "tester"))
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            role=tester,
+            is_active=False,
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(
+            "Заявка на регистрацию отправлена. Войти можно будет "
+            "после одобрения администратором.",
+            "success",
+        )
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/register.html", form=form)
 
 
 # Только POST: выход меняет состояние, а GET-ссылку может «нажать» чужой сайт.

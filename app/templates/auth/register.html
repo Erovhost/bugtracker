@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<h1>Регистрация</h1>
+<p>После регистрации аккаунт должен одобрить администратор.</p>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.username) }}
+    {{ render_field(form.email) }}
+    {{ render_field(form.password) }}
+    {{ render_field(form.password2) }}
+    {{ form.submit(class="button") }}
+</form>
+<p>Уже есть аккаунт? <a href="{{ url_for('auth.login') }}">Войти</a></p>
+{% endblock %}
