@@ -70,3 +70,16 @@ def test_log_to_file_by_default(tmp_path):
         for handler in handlers:
             app.logger.removeHandler(handler)
             handler.close()
+
+
+@pytest.mark.parametrize("secure", [True, False])
+def test_session_cookie_secure_flag(secure):
+    # Журнал в консоль: файловый журнал в тестах не создаём
+    app = create_app(make_config(
+        SECRET_KEY="k", LOG_TO_STDOUT=True, SESSION_COOKIE_SECURE=secure
+    ))
+    # Форма входа кладёт CSRF-токен в сессию — сервер присылает cookie
+    response = app.test_client().get("/auth/login")
+    cookie = response.headers["Set-Cookie"]
+    assert cookie.startswith("session=")
+    assert ("Secure" in cookie) == secure
