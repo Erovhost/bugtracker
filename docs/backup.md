@@ -17,7 +17,8 @@ PowerShell, из папки проекта. Копии кладём в `backups/
 
 **Не попадают роли** (`bugtracker`, `bugtracker_app`, `bugtracker_readonly`):
 роли — объекты всего сервера PostgreSQL, а не одной базы. На новом сервере их
-нужно создать заново: владельца — как на этапе 0, остальные — `sql/roles.sql`.
+нужно создать заново: владельца — как на этапе 0, остальные — `sql/roles.sql`
+(он же выдаёт права через `sql/grants.sql`).
 Полную копию ролей может сделать администратор: `pg_dumpall -U postgres --roles-only`.
 
 ## 1. Сделать копию
@@ -115,7 +116,8 @@ psql -U bugtracker -d postgres -c "DROP DATABASE bugtracker_restore;"
 
    `--clean` удаляет объекты перед созданием, `--if-exists` не даёт ошибок,
    если какого-то объекта уже нет.
-4. Выдать права ролям заново: `psql -U postgres -d bugtracker -f sql/roles.sql`.
+4. Выдать права ролям заново (может владелец базы):
+   `psql -U bugtracker -d bugtracker -f sql/grants.sql`.
 5. Проверить версию миграций и запустить приложение:
 
    ```powershell

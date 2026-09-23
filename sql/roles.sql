@@ -12,9 +12,10 @@
 --   -v app_password=... -v readonly_password=...
 -- (но тогда пароли останутся в истории команд).
 --
--- Скрипт можно запускать повторно: роли создаются, если их нет, права
--- выдаются заново. Запускайте его после каждой миграции, добавляющей
--- таблицы, — новые таблицы права автоматически не получают.
+-- Скрипт можно запускать повторно: роли создаются, если их нет.
+-- Права выдаёт sql/grants.sql (подключается в конце). После миграции,
+-- добавляющей таблицы, достаточно запустить только grants.sql — это
+-- может сделать владелец базы bugtracker, пароль postgres не нужен.
 -- =====================================================================
 
 \set ON_ERROR_STOP on
@@ -52,55 +53,12 @@ ALTER ROLE bugtracker_app
 ALTER ROLE bugtracker_readonly
     LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD :'readonly_password';
 
--- ---------------------------------------------------------------------
--- 2. Доступ к базе и схеме
--- ---------------------------------------------------------------------
--- По умолчанию подключаться к базе может любая роль (PUBLIC). Убираем это
--- и разрешаем явно. Владелец и суперпользователь не затронуты.
-REVOKE ALL ON DATABASE bugtracker FROM PUBLIC;
-GRANT CONNECT ON DATABASE bugtracker TO bugtracker_app, bugtracker_readonly;
-
--- Создавать объекты в схеме public может только владелец
-REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-GRANT USAGE ON SCHEMA public TO bugtracker_app, bugtracker_readonly;
-
--- Сбрасываем прежние права, чтобы повторный запуск давал ровно то, что ниже
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM bugtracker_app, bugtracker_readonly;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM bugtracker_app, bugtracker_readonly;
-
--- ---------------------------------------------------------------------
--- 3. Права приложения: только то, что делает код
--- ---------------------------------------------------------------------
-GRANT SELECT                 ON roles           TO bugtracker_app;
--- пользователей не удаляем, только блокируем
-GRANT SELECT, INSERT, UPDATE ON users           TO bugtracker_app;
--- удаления проектов и багов в приложении нет
-GRANT SELECT, INSERT, UPDATE ON projects        TO bugtracker_app;
-GRANT SELECT, INSERT, UPDATE ON bugs            TO bugtracker_app;
--- «убрать участника из проекта» — это DELETE строки
-GRANT SELECT, INSERT, DELETE ON project_members TO bugtracker_app;
--- журналы: только добавлять и читать, менять и удалять нельзя
--- (INSERT в status_history нужен триггеру: он работает с правами того,
--- кто изменил bugs)
-GRANT SELECT, INSERT         ON comments        TO bugtracker_app;
-GRANT SELECT, INSERT         ON status_history  TO bugtracker_app;
--- представления для страницы статистики
-GRANT SELECT ON v_bug_stats, v_open_bugs_by_assignee TO bugtracker_app;
--- счётчики SERIAL: без USAGE не получить новый id при INSERT
-GRANT USAGE ON SEQUENCE
-    users_id_seq, projects_id_seq, bugs_id_seq, comments_id_seq, status_history_id_seq
-    TO bugtracker_app;
-
--- ---------------------------------------------------------------------
--- 4. Роль только для чтения: все данные, кроме хэшей паролей
--- ---------------------------------------------------------------------
-GRANT SELECT ON roles, projects, project_members, bugs, comments, status_history
-    TO bugtracker_readonly;
-GRANT SELECT ON v_bug_stats, v_open_bugs_by_assignee TO bugtracker_readonly;
--- Права на отдельные колонки: password_hash в список не входит
-GRANT SELECT (id, username, email, role_id, is_active, approved_at, created_at)
-    ON users TO bugtracker_readonly;
-
 COMMIT;
+
+-- ---------------------------------------------------------------------
+-- 2–4. Права на базу, схему, таблицы и представления — в отдельном файле,
+-- который может запускать и владелец базы (без пароля postgres)
+-- ---------------------------------------------------------------------
+\ir grants.sql
 
 \echo 'Роли bugtracker_app и bugtracker_readonly настроены.'
