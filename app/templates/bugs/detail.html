@@ -101,6 +101,20 @@
 <h2>Фактический результат</h2>
 <p class="description">{{ bug.actual or "не указано" }}</p>
 
+<h2>Комментарии</h2>
+{% for comment in bug.comments %}
+<div class="comment">
+    <div class="comment-meta">
+        <strong>{{ comment.author.username }}</strong>
+        {% if not comment.author.is_active %}<span class="blocked">заблокирован</span>{% endif %}
+        · {{ comment.created_at.strftime("%d.%m.%Y %H:%M") }}
+    </div>
+    <div class="description">{{ comment.text }}</div>
+</div>
+{% else %}
+<p class="muted">Комментариев пока нет.</p>
+{% endfor %}
+
 <h2>История статусов</h2>
 <div class="table-wrap">
     <table class="table">

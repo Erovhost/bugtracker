@@ -316,3 +316,18 @@ a.button {
     background: #f6d7d3;
     border-radius: 8px;
 }
+
+/* Комментарии в карточке бага */
+.comment {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #f7f8fa;
+    border-left: 3px solid #b6d0ee;
+    border-radius: 4px;
+}
+
+.comment-meta {
+    margin-bottom: 4px;
+    font-size: 14px;
+    color: #555;
+}

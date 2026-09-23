@@ -177,9 +177,12 @@ class Bug(db.Model):
     reporter: so.Mapped["User"] = so.relationship(foreign_keys=[reporter_id])
     assignee: so.Mapped[Optional["User"]] = so.relationship(foreign_keys=[assignee_id])
     updater: so.Mapped["User"] = so.relationship(foreign_keys=[updated_by])
-    # Комментарии и история удаляются вместе с багом
+    # Комментарии и история удаляются вместе с багом.
+    # Комментарии — от старых к новым, как в переписке.
     comments: so.Mapped[list["Comment"]] = so.relationship(
-        back_populates="bug", cascade="all, delete-orphan"
+        back_populates="bug",
+        cascade="all, delete-orphan",
+        order_by="Comment.id",
     )
     # История всегда по порядку записи (order_by — настройка Python, не БД)
     history: so.Mapped[list["StatusHistory"]] = so.relationship(
