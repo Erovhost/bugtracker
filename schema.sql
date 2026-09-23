@@ -26,7 +26,7 @@ CREATE TABLE projects (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(120) NOT NULL UNIQUE,
     description TEXT,
-    created_by  INTEGER      REFERENCES users (id),
+    created_by  INTEGER      NOT NULL REFERENCES users (id),
     created_at  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
@@ -46,15 +46,18 @@ CREATE TABLE bugs (
     expected    TEXT,
     actual      TEXT,
     environment VARCHAR(200),
-    severity    VARCHAR(20)
+    severity    VARCHAR(20)  NOT NULL
+                CONSTRAINT ck_bugs_severity
                 CHECK (severity IN ('critical', 'major', 'minor', 'trivial')),
-    priority    VARCHAR(20)
+    priority    VARCHAR(20)  NOT NULL DEFAULT 'medium'
+                CONSTRAINT ck_bugs_priority
                 CHECK (priority IN ('high', 'medium', 'low')),
     status      VARCHAR(20)  NOT NULL DEFAULT 'new'
+                CONSTRAINT ck_bugs_status
                 CHECK (status IN ('new', 'in_progress', 'fixed', 'rejected', 'closed')),
     reporter_id INTEGER      NOT NULL REFERENCES users (id),
-    assignee_id INTEGER      REFERENCES users (id),
-    updated_by  INTEGER      REFERENCES users (id),
+    assignee_id INTEGER      REFERENCES users (id),  -- NULL: баг ещё не назначен
+    updated_by  INTEGER      NOT NULL REFERENCES users (id),  -- при создании = reporter_id
     created_at  TIMESTAMP    NOT NULL DEFAULT now(),
     updated_at  TIMESTAMP    NOT NULL DEFAULT now()
 );
@@ -68,20 +71,21 @@ CREATE TABLE comments (
     created_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- История смены статусов. Удаляется вместе с багом.
+-- История смены статусов. Пишется только триггером при UPDATE статуса.
+-- Удаляется вместе с багом.
 CREATE TABLE status_history (
     id         SERIAL PRIMARY KEY,
     bug_id     INTEGER     NOT NULL REFERENCES bugs (id) ON DELETE CASCADE,
-    old_status VARCHAR(20),
+    old_status VARCHAR(20) NOT NULL,
     new_status VARCHAR(20) NOT NULL,
-    changed_by INTEGER     REFERENCES users (id),
+    changed_by INTEGER     NOT NULL REFERENCES users (id),
     changed_at TIMESTAMP   NOT NULL DEFAULT now()
 );
 
 -- Индексы для частых выборок: баги проекта, фильтр по статусу и исполнителю
-CREATE INDEX idx_bugs_project_id  ON bugs (project_id);
-CREATE INDEX idx_bugs_status      ON bugs (status);
-CREATE INDEX idx_bugs_assignee_id ON bugs (assignee_id);
+CREATE INDEX ix_bugs_project_id   ON bugs (project_id);
+CREATE INDEX ix_bugs_status       ON bugs (status);
+CREATE INDEX ix_bugs_assignee_id  ON bugs (assignee_id);
 
 -- Триггер: при смене статуса бага пишет запись в status_history.
 -- Кто сменил статус, берётся из bugs.updated_by.

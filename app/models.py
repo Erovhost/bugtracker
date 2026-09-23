@@ -61,11 +61,11 @@ class Project(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(120), unique=True)
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
-    created_by: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey("users.id"))
+    created_by: so.Mapped[int] = so.mapped_column(sa.ForeignKey("users.id"))
     created_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
 
     # Кто создал проект: project.creator
-    creator: so.Mapped[Optional["User"]] = so.relationship()
+    creator: so.Mapped["User"] = so.relationship()
     # Участники проекта: project.members
     members: so.Mapped[list["User"]] = so.relationship(
         secondary=project_members, back_populates="projects"
@@ -104,8 +104,11 @@ class Bug(db.Model):
     expected: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
     actual: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
     environment: so.Mapped[Optional[str]] = so.mapped_column(sa.String(200))
-    severity: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
-    priority: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
+    # Серьёзность без значения по умолчанию: тестировщик выбирает сам
+    severity: so.Mapped[str] = so.mapped_column(sa.String(20))
+    priority: so.Mapped[str] = so.mapped_column(
+        sa.String(20), default="medium", server_default="medium"
+    )
     status: so.Mapped[str] = so.mapped_column(
         sa.String(20), index=True, default="new", server_default="new"
     )
@@ -113,7 +116,9 @@ class Bug(db.Model):
     assignee_id: so.Mapped[Optional[int]] = so.mapped_column(
         sa.ForeignKey("users.id"), index=True
     )
-    updated_by: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey("users.id"))
+    # При создании бага = reporter_id, дальше — кто менял последним.
+    # Отсюда триггер берёт автора смены статуса.
+    updated_by: so.Mapped[int] = so.mapped_column(sa.ForeignKey("users.id"))
     created_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
     # onupdate — SQLAlchemy обновляет время при каждом UPDATE бага
     updated_at: so.Mapped[datetime] = so.mapped_column(
@@ -124,7 +129,7 @@ class Bug(db.Model):
     # Три связи с users, поэтому для каждой указываем, через какую колонку
     reporter: so.Mapped["User"] = so.relationship(foreign_keys=[reporter_id])
     assignee: so.Mapped[Optional["User"]] = so.relationship(foreign_keys=[assignee_id])
-    updater: so.Mapped[Optional["User"]] = so.relationship(foreign_keys=[updated_by])
+    updater: so.Mapped["User"] = so.relationship(foreign_keys=[updated_by])
     # Комментарии и история удаляются вместе с багом
     comments: so.Mapped[list["Comment"]] = so.relationship(
         back_populates="bug", cascade="all, delete-orphan"
@@ -162,13 +167,14 @@ class StatusHistory(db.Model):
     bug_id: so.Mapped[int] = so.mapped_column(
         sa.ForeignKey("bugs.id", ondelete="CASCADE")
     )
-    old_status: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20))
+    # Записи создаёт триггер при UPDATE статуса, поэтому old_status всегда есть
+    old_status: so.Mapped[str] = so.mapped_column(sa.String(20))
     new_status: so.Mapped[str] = so.mapped_column(sa.String(20))
-    changed_by: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey("users.id"))
+    changed_by: so.Mapped[int] = so.mapped_column(sa.ForeignKey("users.id"))
     changed_at: so.Mapped[datetime] = so.mapped_column(server_default=sa.func.now())
 
     bug: so.Mapped["Bug"] = so.relationship(back_populates="history")
-    changer: so.Mapped[Optional["User"]] = so.relationship()
+    changer: so.Mapped["User"] = so.relationship()
 
     def __repr__(self):
         return f"<StatusHistory bug {self.bug_id}: {self.old_status} -> {self.new_status}>"
