@@ -11,9 +11,17 @@ from app.assignments import (
     unassign,
 )
 from app.bugs import bp
-from app.bugs.forms import AssignForm, BugForm
+from app.bugs.forms import AssignForm, BugForm, CommentForm
 from app.decorators import role_required
-from app.models import PRIORITY_LABELS, SEVERITY_LABELS, STATUS_LABELS, Bug, Project, User
+from app.models import (
+    PRIORITY_LABELS,
+    SEVERITY_LABELS,
+    STATUS_LABELS,
+    Bug,
+    Comment,
+    Project,
+    User,
+)
 from app.workflow import apply_transition, available_transitions, check_transition
 
 
@@ -96,7 +104,28 @@ def detail(bug_id):
         assignee_locked=locked,
         assign_form=assign_form,
         transitions=available_transitions(current_user, bug),
+        comment_form=CommentForm(),
     )
+
+
+@bp.route("/<int:bug_id>/comments", methods=["POST"])
+@login_required
+def add_comment(bug_id):
+    # Комментировать может любой, кто видит баг (участники и admin), в любом статусе
+    bug = get_bug_or_403(bug_id)
+    form = CommentForm()
+    if form.validate_on_submit():
+        db.session.add(Comment(bug=bug, author=current_user, text=form.text.data.strip()))
+        db.session.commit()
+        flash("Комментарий добавлен.", "success")
+    else:
+        # Показываем первую ошибку формы (пустой текст или слишком длинный)
+        message = "Не удалось добавить комментарий."
+        if form.text.errors:
+            message = form.text.errors[0]
+        flash(message, "error")
+    # _anchor добавляет к адресу #comments — браузер прокрутит к комментариям
+    return redirect(url_for("bugs.detail", bug_id=bug.id, _anchor="comments"))
 
 
 LOCKED_MESSAGE = "У закрытых и отклонённых багов исполнителя не меняют."

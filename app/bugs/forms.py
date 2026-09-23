@@ -33,6 +33,18 @@ class BugForm(FlaskForm):
     submit = SubmitField("Сохранить")
 
 
+class CommentForm(FlaskForm):
+    # DataRequired не пропускает и текст из одних пробелов
+    text = TextAreaField(
+        "Комментарий",
+        validators=[
+            DataRequired("Напишите текст комментария."),
+            Length(max=5000, message="Не длиннее 5000 символов."),
+        ],
+    )
+    submit = SubmitField("Отправить")
+
+
 class AssignForm(FlaskForm):
     # Значения — строки: "" означает «не назначен», иначе id разработчика.
     # Варианты задаёт маршрут, подменить id на чужой не получится.

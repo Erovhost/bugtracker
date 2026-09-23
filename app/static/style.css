@@ -331,3 +331,21 @@ a.button {
     font-size: 14px;
     color: #555;
 }
+
+/* Форма нового комментария */
+.comment-form {
+    max-width: none;
+    margin: 12px 0 24px;
+}
+
+.comment-form textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 16px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+}

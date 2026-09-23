@@ -101,7 +101,7 @@
 <h2>Фактический результат</h2>
 <p class="description">{{ bug.actual or "не указано" }}</p>
 
-<h2>Комментарии</h2>
+<h2 id="comments">Комментарии</h2>
 {% for comment in bug.comments %}
 <div class="comment">
     <div class="comment-meta">
@@ -114,6 +114,12 @@
 {% else %}
 <p class="muted">Комментариев пока нет.</p>
 {% endfor %}
+
+<form class="comment-form" method="post" action="{{ url_for('bugs.add_comment', bug_id=bug.id) }}" novalidate>
+    {{ comment_form.hidden_tag() }}
+    {{ comment_form.text(rows=3, placeholder="Написать комментарий…") }}
+    {{ comment_form.submit(class="button button-small") }}
+</form>
 
 <h2>История статусов</h2>
 <div class="table-wrap">
