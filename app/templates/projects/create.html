@@ -9,7 +9,7 @@
     {{ form.hidden_tag() }}
     {{ render_field(form.name) }}
     {{ render_field(form.description) }}
-    {{ form.submit(class="button") }}
+    {{ form.submit(class="button", value="Создать") }}
 </form>
 <p><a href="{{ url_for('projects.index') }}">← К списку проектов</a></p>
 {% endblock %}

@@ -67,6 +67,23 @@ def detail(project_id):
     return render_template("projects/detail.html", project=project, add_form=add_form)
 
 
+@bp.route("/project/<int:project_id>/edit", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def edit(project_id):
+    project = db.get_or_404(Project, project_id)
+    # obj=project: при открытии страницы поля заполняются текущими значениями
+    form = ProjectForm(original_name=project.name, obj=project)
+    if form.validate_on_submit():
+        project.name = form.name.data
+        project.description = form.description.data or None
+        db.session.commit()
+        flash("Изменения сохранены.", "success")
+        return redirect(url_for("projects.detail", project_id=project.id))
+
+    return render_template("projects/edit.html", form=form, project=project)
+
+
 @bp.route("/project/<int:project_id>/members/add", methods=["POST"])
 @login_required
 @role_required("admin")

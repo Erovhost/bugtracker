@@ -16,9 +16,17 @@ class ProjectForm(FlaskForm):
         ],
     )
     description = TextAreaField("Описание", validators=[Optional()])
-    submit = SubmitField("Создать")
+    submit = SubmitField("Сохранить")
+
+    # original_name — текущее название при редактировании (None при создании).
+    # Без него форма ругалась бы на сам редактируемый проект.
+    def __init__(self, original_name=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_name = original_name
 
     def validate_name(self, name):
+        if name.data == self.original_name:
+            return
         project = db.session.scalar(sa.select(Project).where(Project.name == name.data))
         if project is not None:
             raise ValidationError("Проект с таким названием уже есть.")

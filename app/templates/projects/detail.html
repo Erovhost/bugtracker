@@ -6,6 +6,9 @@
 <p><a href="{{ url_for('projects.index') }}">← Все проекты</a></p>
 
 <h1>{{ project.name }}</h1>
+{% if current_user.has_role("admin") %}
+<p><a href="{{ url_for('projects.edit', project_id=project.id) }}">Редактировать</a></p>
+{% endif %}
 <p class="muted">
     Создал {{ project.creator.username }},
     {{ project.created_at.strftime("%d.%m.%Y") }}

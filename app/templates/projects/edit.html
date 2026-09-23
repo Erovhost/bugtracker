@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_formhelpers.html" import render_field %}
+
+{% block title %}Редактирование: {{ project.name }}{% endblock %}
+
+{% block content %}
+<h1>Редактирование проекта</h1>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.name) }}
+    {{ render_field(form.description) }}
+    {{ form.submit(class="button") }}
+</form>
+<p><a href="{{ url_for('projects.detail', project_id=project.id) }}">← Отмена</a></p>
+{% endblock %}
