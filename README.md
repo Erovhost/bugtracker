@@ -3,9 +3,9 @@
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB)
 ![Flask](https://img.shields.io/badge/Flask-3.1-000000)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1)
-![Тесты](https://img.shields.io/badge/pytest-185_тестов-0A9EDC)
+![Тесты](https://img.shields.io/badge/pytest-198_тестов-0A9EDC)
 ![Линтер](https://img.shields.io/badge/code_style-ruff-D7FF64)
-<!-- Бейдж Qlty и ссылка на рабочую версию — после деплоя (этап 13) -->
+<!-- Бейдж Qlty — после подключения Qlty (этап 13) -->
 
 Веб-приложение для учёта багов в проектах: тестировщики заводят баги,
 разработчики берут их в работу и исправляют, тестировщики проверяют и закрывают.
@@ -16,7 +16,9 @@
 Основа — [Flask Mega-Tutorial](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-i-hello-world)
 (репозиторий создан с нуля, предметная область — баг-трекер вместо микроблога).
 
-**Рабочая версия:** появится после деплоя.
+**Рабочая версия:** https://bugtracker-9p9c.onrender.com/ — вход демо-аккаунтами
+(раздел «Демо-данные»). Бесплатный сервер засыпает без посетителей: первое
+открытие может занять до минуты.
 
 ## Возможности
 
@@ -178,23 +180,15 @@ flask seed --restore-demo   # вернуть демо-аккаунты в раб
 
 ### На деплое
 
-- **`flask seed` — в команде запуска** после миграций. Команда безопасна для
-  повторного запуска, поэтому её можно выполнять при каждом старте:
+- **`flask seed` — в команде запуска** на Render, перед gunicorn. Повторный
+  запуск ничего не дублирует, а в новой базе (после миграций) демо-данные
+  появятся сами.
+- **`flask seed --restore-demo`** — вручную со своего компьютера, когда демо
+  «сломали». Как подключиться к базе на Render — в разделе
+  [«Деплой»](#команды-для-базы-на-render-со-своего-компьютера).
 
-  ```bash
-  flask db upgrade && flask seed && gunicorn "bugtracker:app"
-  ```
-
-- **`flask seed --restore-demo`** — вручную из консоли (shell) хостинга, когда
-  демо «сломали», или по расписанию (cron-задача хостинга), например раз в сутки:
-
-  ```bash
-  flask seed --restore-demo
-  ```
-
-Команды используют ту же переменную `DATABASE_URL`, что и приложение. Им хватает
-прав роли приложения `bugtracker_app` (проверено), владелец базы нужен только
-для миграций. Конкретные настройки хостинга — в разделе «Деплой».
+Обеим командам хватает прав роли приложения `bugtracker_app` (проверено);
+владелец базы нужен только для миграций.
 
 ## База данных
 
@@ -308,8 +302,9 @@ Get-Content logs\bugtracker.log -Tail 20 -Encoding utf8
 - Все изменяющие действия — POST-запросы с CSRF-токеном; GET ничего не меняет.
 - Доступ к проектам и багам проверяется на сервере; к чужому — ответ 403.
 - Защита от open redirect после входа; вывод в шаблонах экранируется (XSS).
-- Секреты — только в `.env`; приложение может работать под ролью БД с
-  минимальными правами.
+- Секреты — только в `.env` (на Render — в переменных окружения сервиса).
+- На деплое: только HTTPS, cookie входа с флагами `Secure` и `HttpOnly`,
+  сайт работает под ролью БД `bugtracker_app` с минимальными правами.
 
 ## Резервное копирование
 
@@ -357,6 +352,106 @@ bugtracker/
 
 ## Деплой
 
-Будет описан на этапе деплоя: хостинг, переменные окружения, команда запуска
-(`flask db upgrade && flask seed && gunicorn "bugtracker:app"`) и ссылка на
-рабочую версию.
+Рабочая версия: https://bugtracker-9p9c.onrender.com/ — хостинг
+[Render](https://render.com), бесплатный тариф: веб-сервис и PostgreSQL 18 в
+регионе Frankfurt. Сайт обновляется сам после каждого `git push` в ветку `main`.
+
+Ограничения бесплатного тарифа:
+
+- веб-сервис засыпает через 15 минут без посетителей, первое открытие после
+  этого — до минуты;
+- **бесплатная база работает 30 дней**, потом ещё 14 дней недоступна и
+  удаляется. Дата — на странице базы в панели Render. Как продлить — ниже,
+  «Перенос базы»;
+- бесплатная база — одна на аккаунт; задания по расписанию (cron) платные,
+  поэтому `restore-demo` запускается вручную.
+
+### Как устроено
+
+| Настройка веб-сервиса | Значение |
+|---|---|
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `flask seed && gunicorn --bind 0.0.0.0:$PORT bugtracker:app` |
+| Версия Python | из файла `.python-version` |
+
+Переменные окружения (Render → сервис → **Environment**; в репозитории их нет):
+
+| Переменная | Значение |
+|---|---|
+| `DATABASE_URL` | адрес роли `bugtracker_app` по **внутреннему** хосту базы, с `?sslmode=require&channel_binding=disable` |
+| `SECRET_KEY` | случайный, кнопка **Generate** (не тот, что локально) |
+| `LOG_TO_STDOUT` | `1` — журнал на вкладке **Logs** |
+| `SECURE_COOKIES` | `1` — cookie входа только по HTTPS |
+| `FLASK_DEBUG` | `0` — перекрывает `FLASK_DEBUG=1` из `.flaskenv` |
+
+**Сайт работает под ролью `bugtracker_app`**, а не под владельцем базы: у неё
+нет прав менять структуру таблиц и удалять журналы. Поэтому миграции не
+запускаются при старте сайта — их выполняет владелец со своего компьютера
+(ниже). Адрес владельца на Render не хранится.
+
+### Команды для базы на Render со своего компьютера
+
+Нужен адрес базы: панель Render → база → **Connections** → **External Database
+URL** (это адрес владельца). Адрес вводится через `Read-Host` — так он не
+попадает в историю команд PowerShell. Переменная `DATABASE_URL` из окна
+PowerShell главнее значения в `.env`.
+
+```powershell
+.\venv\Scripts\Activate.ps1
+$env:DATABASE_URL = Read-Host "Адрес базы Render"   # вставить адрес, Enter
+
+flask db upgrade                            # миграции (нужен владелец)
+psql $env:DATABASE_URL -f sql/grants.sql    # права ролям, если миграция добавила таблицы
+flask seed --restore-demo                   # вернуть демо-аккаунты
+
+Remove-Item Env:DATABASE_URL                # дальше снова работаем с локальной базой
+```
+
+`--restore-demo` можно запускать и под `bugtracker_app` — тогда вместо адреса
+владельца введите адрес этой роли по **внешнему** хосту с
+`?sslmode=require&channel_binding=disable` (без `channel_binding=disable`
+Render не пропускает такое подключение снаружи).
+
+> ⚠️ Не забудьте `Remove-Item Env:DATABASE_URL` (или закройте окно): иначе
+> следующие команды `flask` в этом окне пойдут в базу на Render.
+
+**Новая версия с миграцией:** сначала `flask db upgrade` (и `grants.sql`, если
+появились таблицы) для базы Render, потом `git push` — иначе новый код
+запустится на старой структуре базы.
+
+### Перенос базы (продление после 30 дней)
+
+Бесплатная база одна, поэтому старую нужно удалить **до** создания новой.
+Всё, что в ней было, пропадёт, — если данные нужны, сначала сделайте копию и
+проверьте её (подробнее о копиях — [docs/backup.md](docs/backup.md)):
+
+```powershell
+$env:DATABASE_URL = Read-Host "Адрес СТАРОЙ базы Render"
+$date = Get-Date -Format "yyyy-MM-dd"
+pg_dump -d $env:DATABASE_URL -F c -f "backups\render_$date.dump"
+pg_restore --list "backups\render_$date.dump"   # есть TABLE DATA, VIEW, TRIGGER
+```
+
+Затем:
+
+1. Панель Render → старая база → **Settings** → **Delete Database**.
+2. **New → Postgres**: регион **Frankfurt**, PostgreSQL 18, тариф Free.
+3. Структура и данные в новой базе (адрес — External Database URL новой базы):
+
+   ```powershell
+   $env:DATABASE_URL = Read-Host "Адрес НОВОЙ базы Render"
+   # Вариант 1 — с данными из копии:
+   pg_restore -d $env:DATABASE_URL --no-owner --no-privileges "backups\render_$date.dump"
+   # Вариант 2 — пустая база (демо-данные создаст сам сайт при запуске):
+   flask db upgrade
+   # В обоих вариантах — роли сайта и отчётов (спросит их новые пароли):
+   psql $env:DATABASE_URL -f sql/roles.sql
+   Remove-Item Env:DATABASE_URL
+   ```
+
+4. Веб-сервис → **Environment** → `DATABASE_URL`: новый адрес роли
+   `bugtracker_app` — внутренний хост и имя базы из **Internal Database URL**
+   новой базы, пароль — заданный в `roles.sql`:
+   `postgresql://bugtracker_app:ПАРОЛЬ@ХОСТ/БАЗА?sslmode=require&channel_binding=disable`.
+   **Save, rebuild and deploy**.
+5. Проверить сайт: вход `pixel`, `ana`, `bob`.
