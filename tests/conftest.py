@@ -12,8 +12,10 @@ pytest сам находит этот файл; его фикстуры дост
 Поэтому factory возвращает id, а не объекты.
 """
 
+from pathlib import Path
 from urllib.parse import urlsplit
 
+import psycopg
 import pytest
 import sqlalchemy as sa
 from flask_migrate import upgrade
@@ -22,6 +24,8 @@ from app import create_app, db
 from app.models import Bug, Project, Role, User
 from config import TestConfig
 from tests.helpers import PASSWORD
+
+GRANTS_FILE = Path(__file__).parent.parent / "sql" / "grants.sql"
 
 # Все таблицы с данными, кроме roles (роли создаёт миграция)
 DATA_TABLES = "users, projects, project_members, bugs, comments, status_history"
@@ -56,7 +60,27 @@ def app():
         db.session.execute(sa.text("CREATE SCHEMA public"))
         db.session.commit()
         upgrade(directory="migrations")
+        apply_grants_if_roles_exist()
     return app
+
+
+def apply_grants_if_roles_exist():
+    """Выдать ролям права в тестовой базе тем же sql/grants.sql, что в рабочей.
+
+    Роли создаёт администратор (sql/roles.sql); если их на сервере нет,
+    тесты под ролью приложения будут пропущены.
+    """
+    exists = sa.text("SELECT count(*) FROM pg_roles WHERE rolname = 'bugtracker_app'")
+    if db.session.execute(exists).scalar() == 0:
+        return
+    with open(GRANTS_FILE, encoding="utf-8") as f:
+        script = f.read()
+    # Файл содержит несколько команд и свои BEGIN/COMMIT, поэтому выполняем
+    # его напрямую драйвером psycopg в режиме autocommit, а не через сессию
+    url = sa.engine.make_url(TestConfig.SQLALCHEMY_DATABASE_URI)
+    url = url.set(drivername="postgresql").render_as_string(hide_password=False)
+    with psycopg.connect(url, autocommit=True) as conn:
+        conn.execute(script)
 
 
 @pytest.fixture(autouse=True)
